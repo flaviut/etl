@@ -26,10 +26,35 @@ jobs:
         git fetch --tags
         cmake -D BUILD_TESTS=ON -DNO_STL=OFF -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF ./
         clang --version
-        make
+        make -j$(nproc)
 
     - name: Run tests
       run: ./test/etl_tests
+
+  build-clang-9-linux-stl-cpp14:
+    name: Clang-9 Linux - STL - CPP14
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "clang-9" "lldb-9" "lld-9" "clang-format-9"
+          export CC=clang-9
+          export CXX=clang++-9
+          export ASAN_OPTIONS=alloc_dealloc_mismatch=0,detect_leaks=0
+          git fetch --tags
+          cmake -D BUILD_TESTS=ON -DNO_STL=OFF -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF -DCMAKE_CXX_STANDARD=14 ./
+          clang --version
+          make -j$(nproc)
+
+      - name: Run tests
+        run: ./test/etl_tests
 
   build-clang-9-linux-no-stl:
     name: Clang-9 Linux - No STL
@@ -53,10 +78,37 @@ jobs:
         gcc --version
         cmake -D BUILD_TESTS=ON -DNO_STL=ON -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF ./
         clang --version
-        make
+        make -j$(nproc)
     
     - name: Run tests
       run: ./test/etl_tests
+
+  build-clang-9-linux-no-stl-cpp14:
+    name: Clang-9 Linux - No STL - CPP14
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "clang-9" "lldb-9" "lld-9" "clang-format-9"
+          export CC=clang-9
+          export CXX=clang++-9
+          export ASAN_OPTIONS=alloc_dealloc_mismatch=0,detect_leaks=0
+          git fetch --tags
+          cmake -DBUILD_TESTS=ON -DNO_STL=ON -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF -DCMAKE_CXX_STANDARD=14./
+          gcc --version
+          cmake -D BUILD_TESTS=ON -DNO_STL=ON -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF -DCMAKE_CXX_STANDARD=14./
+          clang --version
+          make -j$(nproc)
+
+      - name: Run tests
+        run: ./test/etl_tests
 
   build-clang-9-linux-stl-force-cpp03:
     name: Clang-9 Linux - STL - Force C++03
@@ -78,7 +130,7 @@ jobs:
         git fetch --tags
         cmake -D BUILD_TESTS=ON -DNO_STL=OFF -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=ON ./
         clang --version
-        make
+        make -j$(nproc)
 
     - name: Run tests
       run: ./test/etl_tests
@@ -101,10 +153,33 @@ jobs:
         git fetch --tags
         cmake -D BUILD_TESTS=ON -DNO_STL=OFF -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF ./
         clang --version
-        make
+        make -j$(sysctl -n hw.ncpu)
 
     - name: Run tests
       run: ./test/etl_tests
+
+  build-clang-10-osx-stl-cpp14:
+    name: Clang-10 OSX - STL - CPP14
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-11]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          export CC=clang
+          export CXX=clang++
+          export ASAN_OPTIONS=alloc_dealloc_mismatch=0,detect_leaks=0
+          git fetch --tags
+          cmake -D BUILD_TESTS=ON -DNO_STL=OFF -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF -DCMAKE_CXX_STANDARD=14 ./
+          clang --version
+          make -j$(sysctl -n hw.ncpu)
+
+      - name: Run tests
+        run: ./test/etl_tests
 
   build-clang-10-osx-no-stl:
     name: Clang-10 OSX - No STL
@@ -124,10 +199,33 @@ jobs:
         git fetch --tags
         cmake -D BUILD_TESTS=ON -DNO_STL=ON -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF ./
         clang --version
-        make
+        make -j$(sysctl -n hw.ncpu)
 
     - name: Run tests
       run: ./test/etl_tests
+
+  build-clang-10-osx-no-stl-cpp14:
+    name: Clang-10 OSX - No STL - CPP14
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-11]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          export CC=clang
+          export CXX=clang++
+          export ASAN_OPTIONS=alloc_dealloc_mismatch=0,detect_leaks=0
+          git fetch --tags
+          cmake -D BUILD_TESTS=ON -DNO_STL=ON -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF -DCMAKE_CXX_STANDARD=14 ./
+          clang --version
+          make -j$(sysctl -n hw.ncpu)
+
+      - name: Run tests
+        run: ./test/etl_tests
 
   build-clang-10-osx-stl-force-cpp03:
     name: Clang-10 OSX - STL - Force C++03
@@ -147,7 +245,7 @@ jobs:
         git fetch --tags
         cmake -D BUILD_TESTS=ON -DNO_STL=OFF -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=ON ./
         clang --version
-        make
+        make -j$(sysctl -n hw.ncpu)
 
     - name: Run tests
       run: ./test/etl_tests

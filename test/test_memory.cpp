@@ -1121,7 +1121,7 @@ namespace
       typedef etl::uninitialized_buffer<sizeof(uint32_t), 4, etl::alignment_of_v<uint32_t>> storage32_t;
 
       size_t alignment = etl::alignment_of_v<storage32_t>;
-      size_t expected  = std::alignment_of_v<uint32_t>;
+      size_t expected  = etl::alignment_of_v<uint32_t>;
 
       CHECK_EQUAL(expected, alignment);
     }
@@ -1155,7 +1155,7 @@ namespace
       CHECK_EQUAL(3U, refbuffer[3]);
 
       size_t alignment = etl::alignment_of_v<storage32_t>;
-      size_t expected  = std::alignment_of_v<uint32_t>;
+      size_t expected  = etl::alignment_of_v<uint32_t>;
 
       CHECK_EQUAL(expected, alignment);
     }

@@ -352,6 +352,9 @@ namespace etl
 #if ETL_USING_CPP17
   template <typename T1, typename T2>
   inline constexpr bool is_same_v = is_same<T1, T2>::value;
+#else
+  template <typename T1, typename T2>
+  static constexpr bool is_same_v = is_same<T1, T2>::value;
 #endif
 
   //***************************************************************************
@@ -795,6 +798,9 @@ namespace etl
 #if ETL_USING_CPP17
   template <typename T>
   inline constexpr size_t alignment_of_v = etl::alignment_of<T>::value;
+#else
+  template <typename T>
+  static constexpr size_t alignment_of_v = etl::alignment_of<T>::value;
 #endif
 
 #else // Condition = ETL_USING_STL && ETL_USING_CPP11
@@ -1006,6 +1012,9 @@ namespace etl
 #if ETL_USING_CPP17
   template <typename T1, typename T2>
   inline constexpr bool is_same_v = std::is_same_v<T1, T2>;
+#else
+  template <typename T1, typename T2>
+  constexpr bool is_same_v = std::is_same<T1, T2>::value;
 #endif
 
   //***************************************************************************
@@ -1294,6 +1303,9 @@ namespace etl
 #if ETL_USING_CPP17
   template <typename T>
   inline constexpr size_t alignment_of_v = std::alignment_of_v<T>;
+#elif ETL_USING_CPP11
+  template <typename T>
+  static constexpr size_t alignment_of_v = std::alignment_of<T>::value;
 #endif
 
 #endif // Condition = ETL_USING_STL && ETL_USING_CPP11
@@ -1522,6 +1534,9 @@ namespace etl
 #if ETL_USING_CPP17
   template <typename T>
   inline constexpr size_t size_of_v = etl::size_of<T>::value;
+#else
+  template <typename T>
+  static constexpr size_t size_of_v = etl::size_of<T>::value;
 #endif
 
 #if ETL_USING_CPP11

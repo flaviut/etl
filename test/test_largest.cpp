@@ -55,8 +55,9 @@ namespace
       CHECK(type);
     }
 
-#if !defined(ETL_LARGEST_TYPE_FORCE_CPP03_IMPLEMENTATION)
+#if !defined(ETL_LARGEST_TYPE_FORCE_CPP03_IMPLEMENTATION) && ETL_CPP17_SUPPORTED
     //*************************************************************************
+    // Requires variadic templates, which are in C++17
     TEST(test_pod_type_vt)
     {
       size_t size;
@@ -99,7 +100,7 @@ namespace
       CHECK(type);
     }
 
-#if !defined(ETL_LARGEST_TYPE_FORCE_CPP03_IMPLEMENTATION)
+#if !defined(ETL_LARGEST_TYPE_FORCE_CPP03_IMPLEMENTATION) && ETL_CPP17_SUPPORTED
     //*************************************************************************
     TEST(test_non_pod_type_vt)
     {
