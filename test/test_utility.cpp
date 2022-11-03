@@ -101,6 +101,7 @@ namespace
       CHECK_EQUAL(2.3, p1.second);
     }
 
+#if ETL_CPP17_SUPPORTED
     //*************************************************************************
     TEST(test_cpp17_deduced_pair_construct)
     {
@@ -112,6 +113,7 @@ namespace
       CHECK_EQUAL(1,   p1.first);
       CHECK_EQUAL(2.3, p1.second);
     }
+#endif
 
     //*************************************************************************
     TEST(test_pair_move_parameter_construct)
@@ -334,6 +336,15 @@ namespace
       CHECK(constCalled);
     }
 
+#if ETL_CPP17_SUPPORTED
+    //*************************************************************************
+    TEST(test_functor_deduction)
+    {
+      constexpr etl::functor fw1(TestGlobal);
+      CHECK_EQUAL(2, fw1(1));
+    }
+#endif
+
     //*************************************************************************
     TEST(test_select1st)
     {
@@ -411,7 +422,7 @@ namespace
     //*************************************************************************
     TEST(test_functor)
     {
-      constexpr etl::functor fw1(TestGlobal);
+      constexpr etl::functor<int, int> fw1(TestGlobal);
       CHECK_EQUAL(2, fw1(1));
     }
 

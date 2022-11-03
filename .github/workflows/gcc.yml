@@ -22,10 +22,31 @@ jobs:
         export ASAN_OPTIONS=alloc_dealloc_mismatch=0,detect_leaks=0
         cmake -DBUILD_TESTS=ON -DNO_STL=OFF -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF ./
         gcc --version
-        make
+        make -j$(nproc)
     
     - name: Run tests
       run: ./test/etl_tests
+
+  build-gcc-linux-stl-cpp14:
+    name: GCC Linux - STL - CPP14
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          git fetch --tags
+          export ASAN_OPTIONS=alloc_dealloc_mismatch=0,detect_leaks=0
+          cmake -DBUILD_TESTS=ON -DNO_STL=OFF -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF -DCMAKE_CXX_STANDARD=14 ./
+          gcc --version
+          make -j$(nproc)
+
+      - name: Run tests
+        run: ./test/etl_tests
 
   build-gcc-linux-no-stl:
     name: GCC Linux - No STL
@@ -43,10 +64,31 @@ jobs:
         export ASAN_OPTIONS=alloc_dealloc_mismatch=0,detect_leaks=0
         cmake -DBUILD_TESTS=ON -DNO_STL=ON -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF ./
         gcc --version
-        make
+        make -j$(nproc)
     
     - name: Run tests
       run: ./test/etl_tests
+
+  build-gcc-linux-no-stl-cpp14:
+    name: GCC Linux - No STL - CPP14
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          git fetch --tags
+          export ASAN_OPTIONS=alloc_dealloc_mismatch=0,detect_leaks=0
+          cmake -DBUILD_TESTS=ON -DNO_STL=ON -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=OFF -DCMAKE_CXX_STANDARD=14 ./
+          gcc --version
+          make -j$(nproc)
+
+      - name: Run tests
+        run: ./test/etl_tests
 
   build-gcc-linux-stl-force-cpp03:
     name: GCC Linux - STL - Force C++03
@@ -64,7 +106,7 @@ jobs:
         export ASAN_OPTIONS=alloc_dealloc_mismatch=0,detect_leaks=0
         cmake -DBUILD_TESTS=ON -DNO_STL=OFF -DETL_USE_TYPE_TRAITS_BUILTINS=OFF -DETL_USER_DEFINED_TYPE_TRAITS=OFF -DETL_FORCE_TEST_CPP03=ON ./
         gcc --version
-        make
+        make -j$(nproc)
     
     - name: Run tests
       run: ./test/etl_tests

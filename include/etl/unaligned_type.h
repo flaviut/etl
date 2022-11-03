@@ -230,7 +230,6 @@ namespace etl
     ETL_STATIC_ASSERT(etl::is_integral<T>::value || etl::is_floating_point<T>::value, "Unaligned type must be integral or floating point");
 
     typedef T value_type;
-
     typedef typename private_unaligned_type::unaligned_type_common<sizeof(T)>::storage_type           storage_type;
     typedef typename private_unaligned_type::unaligned_type_common<sizeof(T)>::pointer                pointer;
     typedef typename private_unaligned_type::unaligned_type_common<sizeof(T)>::const_pointer          const_pointer;
@@ -239,9 +238,13 @@ namespace etl
     typedef typename private_unaligned_type::unaligned_type_common<sizeof(T)>::reverse_iterator       reverse_iterator;
     typedef typename private_unaligned_type::unaligned_type_common<sizeof(T)>::const_reverse_iterator const_reverse_iterator;
 
-    static ETL_CONSTANT int Endian = Endian_;
+#if ETL_CPP17_SUPPORTED
+    static ETL_CONSTANT int Endian  = Endian_;
     static ETL_CONSTANT size_t Size = private_unaligned_type::unaligned_type_common<sizeof(T)>::Size;
-
+#else
+    enum : int { Endian  = Endian_ };
+    enum : size_t { Size = private_unaligned_type::unaligned_type_common<sizeof(T)>::Size};
+#endif
     //*************************************************************************
     /// Default constructor
     //*************************************************************************
