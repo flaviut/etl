@@ -41,6 +41,8 @@ SOFTWARE.
 #include <stdint.h>
 #include <vector>
 
+#include <memory>
+
 
 namespace
 {
