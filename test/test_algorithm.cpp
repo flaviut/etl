@@ -681,8 +681,8 @@ namespace
       unsigned char data1[10];
       unsigned char data2[10];
 
-      std::fill(std::begin(data1), std::end(data1), char(0x12U));
-      etl::fill(std::begin(data2), std::end(data2), char(0x12U));
+      std::fill(std::begin(data1), std::end(data1), (unsigned char)(0x12U));
+      etl::fill(std::begin(data2), std::end(data2), (unsigned char)(0x12U));
 
       bool isEqual = std::equal(std::begin(data1), std::end(data1), std::begin(data2));
       CHECK(isEqual);
@@ -954,8 +954,8 @@ namespace
     //*************************************************************************
     TEST(count)
     {
-      size_t c1 = std::count(std::begin(dataEQ), std::end(dataEQ), 5);
-      size_t c2 = etl::count(std::begin(dataEQ), std::end(dataEQ), 5);
+      ptrdiff_t c1 = std::count(std::begin(dataEQ), std::end(dataEQ), 5);
+      ptrdiff_t c2 = etl::count(std::begin(dataEQ), std::end(dataEQ), 5);
 
       CHECK(c1 == c2);
     }
@@ -971,8 +971,8 @@ namespace
         }
       };
 
-      size_t c1 = std::count_if(std::begin(dataEQ), std::end(dataEQ), predicate());
-      size_t c2 = etl::count_if(std::begin(dataEQ), std::end(dataEQ), predicate());
+      ptrdiff_t c1 = std::count_if(std::begin(dataEQ), std::end(dataEQ), predicate());
+      ptrdiff_t c2 = etl::count_if(std::begin(dataEQ), std::end(dataEQ), predicate());
 
       CHECK(c1 == c2);
     }
@@ -2189,3 +2189,4 @@ namespace
     }
   };
 }
+

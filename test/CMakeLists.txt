@@ -312,6 +312,7 @@ if ((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Cla
 			-fsanitize=address,undefined
 			-Wall
 			-Wextra
+			-Wsign-conversion
 			-Werror
 			)
 	target_link_options(etl_tests

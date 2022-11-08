@@ -1506,9 +1506,9 @@ namespace etl
       {
         if (i == etl::find(begin1, i, *i))
         {
-          size_t n = etl::count(begin2, end2, *i);
+          typename etl::iterator_traits<TIterator2>::difference_type n = etl::count(begin2, end2, *i);
 
-          if (n == 0 || size_t(etl::count(i, end1, *i)) != n)
+          if (n == 0 || (etl::count(i, end1, *i) != n))
           {
             return false;
           }
@@ -1542,9 +1542,9 @@ namespace etl
       {
         if (i == etl::find_if(begin1, i, etl::bind1st(predicate, *i)))
         {
-          size_t n = etl::count(begin2, end2, *i);
+          typename etl::iterator_traits<TIterator2>::difference_type n = etl::count(begin2, end2, *i);
 
-          if (n == 0 || size_t(etl::count(i, end1, *i)) != n)
+          if (n == 0 || (etl::count(i, end1, *i) != n))
           {
             return false;
           }
@@ -1574,9 +1574,9 @@ namespace etl
       {
         if (i == etl::find(begin1, i, *i))
         {
-          size_t n = etl::count(begin2, end2, *i);
+          typename etl::iterator_traits<TIterator2>::difference_type n = etl::count(begin2, end2, *i);
 
-          if (n == 0 || size_t(etl::count(i, end1, *i)) != n)
+          if (n == 0 || (etl::count(i, end1, *i) != n))
           {
             return false;
           }
@@ -1606,9 +1606,9 @@ namespace etl
       {
         if (i == etl::find_if(begin1, i, etl::bind1st(predicate, *i)))
         {
-          size_t n = etl::count(begin2, end2, *i);
+          typename etl::iterator_traits<TIterator2>::difference_type n = etl::count(begin2, end2, *i);
 
-          if (n == 0 || size_t(etl::count(i, end1, *i)) != n)
+          if (n == 0 || (etl::count(i, end1, *i) != n))
           {
             return false;
           }
@@ -2010,11 +2010,11 @@ namespace etl
           TOutputIterator o_begin,
           TOutputIterator o_end)
   {
-      size_t s_size = etl::distance(i_begin, i_end);
-      size_t d_size = etl::distance(o_begin, o_end);
-      size_t size   = (s_size < d_size) ? s_size : d_size;
+    size_t s_size = static_cast<size_t>(etl::distance(i_begin, i_end));
+    size_t d_size = static_cast<size_t>(etl::distance(o_begin, o_end));
+    size_t size   = (s_size < d_size) ? s_size : d_size;
 
-      return etl::copy(i_begin, i_begin + size, o_begin);
+    return etl::copy(i_begin, i_begin + size, o_begin);
   }
 
   //***************************************************************************

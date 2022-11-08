@@ -1301,5 +1301,53 @@ namespace
       CHECK((reinterpret_cast<const char*>(data) + 18) == p1);
       CHECK((reinterpret_cast<const char*>(data) + 32) == p2);
     }
+
+    //*************************************************************************
+    class Base 
+    {
+    public:
+
+      virtual ~Base() {};
+      virtual void function() = 0;
+    };
+
+    //*********************************
+    static bool function_was_called = false;
+
+    //*********************************
+    class Derived : public Base 
+    {
+    public:
+
+      Derived() 
+      {
+        function_was_called = false;
+      }
+
+      void function() 
+      {
+        function_was_called = true;
+      }
+    };
+
+    //*********************************
+    void call(etl::unique_ptr<Base> ptr) 
+    {
+      ptr->function();
+    }
+
+    //*********************************
+    // https://github.com/ETLCPP/etl/issues/631
+    TEST(test_issue_631)
+    {
+      CHECK(!function_was_called);
+
+      etl::unique_ptr<Derived> ptr(new Derived());
+      CHECK(ptr.get() != ETL_NULLPTR);
+      
+      call(etl::move(ptr));
+      CHECK(function_was_called);
+      CHECK(ptr.get() == ETL_NULLPTR);
+    }
   };
 }

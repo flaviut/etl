@@ -11,6 +11,7 @@
 
 #ifdef ETL_COMPILER_GCC
   #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+  #pragma GCC diagnostic ignored "-Wsign-conversion"
 #endif
 
 #include "murmurhash3.h"
