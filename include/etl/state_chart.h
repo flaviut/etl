@@ -34,6 +34,7 @@ SOFTWARE.
 #include "array.h"
 #include "array_view.h"
 #include "utility.h"
+#include "function_alternates.h"
 
 #include <stdint.h>
 
@@ -48,12 +49,15 @@ namespace etl
     typedef uint_least8_t state_id_t;
     typedef uint_least8_t event_id_t;
 
+
+
     //*************************************************************************
     /// Transition definition
     //*************************************************************************
     template <typename TObject, typename TParameter = void>
     struct transition
     {
+      //*********************************
       ETL_CONSTEXPR transition(const state_id_t current_state_id_,
                                event_id_t event_id_,
                                const state_id_t next_state_id_,
@@ -62,12 +66,14 @@ namespace etl
         : current_state_id(current_state_id_)
         , event_id(event_id_)
         , next_state_id(next_state_id_)
+        , action_s(action_)
         , action(action_)
         , guard(guard_)
         , from_any_state(false)
       {
       }
 
+      //*********************************
       ETL_CONSTEXPR transition(event_id_t event_id_,
                                const state_id_t next_state_id_,
                                void (TObject::* const action_)(TParameter) = ETL_NULLPTR,
@@ -75,15 +81,31 @@ namespace etl
         : current_state_id(0)
         , event_id(event_id_)
         , next_state_id(next_state_id_)
+        , action_s(action_)
         , action(action_)
         , guard(guard_)
         , from_any_state(true)
       {
       }
 
+      //*********************************
+      bool call_guard(TObject& object, TParameter value)
+      {
+        return true;
+      }
+
+      //*********************************
+      void call_action(TObject& object, TParameter value)
+      {
+
+      }
+
       const state_id_t current_state_id;
       const event_id_t event_id;
       const state_id_t next_state_id;
+
+      etl::function_alternates<TObject, void, TParameter> action_s;
+
       void (TObject::* const action)(TParameter);
       bool (TObject::* const guard)();
       const bool       from_any_state;
@@ -96,6 +118,7 @@ namespace etl
     template <typename TObject>
     struct transition<TObject, void>
     {
+      //*********************************
       ETL_CONSTEXPR transition(const state_id_t current_state_id_,
                                event_id_t event_id_,
                                const state_id_t next_state_id_,
@@ -104,12 +127,14 @@ namespace etl
         : current_state_id(current_state_id_)
         , event_id(event_id_)
         , next_state_id(next_state_id_)
+        , action_s(action_)
         , action(action_)
         , guard(guard_)
         , from_any_state(false)
       {
       }
 
+      //*********************************
       ETL_CONSTEXPR transition(event_id_t event_id_,
                                const state_id_t next_state_id_,
                                void (TObject::* const action_)() = ETL_NULLPTR,
@@ -117,15 +142,31 @@ namespace etl
         : current_state_id(0)
         , event_id(event_id_)
         , next_state_id(next_state_id_)
+        , action_s(action_)
         , action(action_)
         , guard(guard_)
         , from_any_state(true)
       {
       }
 
+      //*********************************
+      bool call_guard(TObject& object)
+      {
+        return true;
+      }
+
+      //*********************************
+      void call_action(TObject& object)
+      {
+
+      }
+
       const state_id_t current_state_id;
       const event_id_t event_id;
       const state_id_t next_state_id;
+
+      etl::function_alternates<TObject, void, void> action_s;
+
       void (TObject::* const action)();
       bool (TObject::* const guard)();
       const bool       from_any_state;
@@ -310,7 +351,7 @@ namespace etl
         while (t != (Transition_Table_Begin + Transition_Table_Size))
         {
           // Scan the transition table from the latest position.
-          t = etl::find_if(t, (Transition_Table_Begin + Transition_Table_Size), is_transition(event_id, this->current_state_id));
+          t = find_transition(t, event_id);
 
           // Found an entry?
           if (t != (Transition_Table_Begin + Transition_Table_Size))
@@ -365,10 +406,26 @@ namespace etl
   private:
 
     //*************************************************************************
-    /// Gets the current state id.
-    /// \return The current state id.
+    /// Gets the transition with ID event_id and current state ID, starting from t.
+    /// \return A pointer to the transition.
     //*************************************************************************
-    const state* find_state(state_id_t state_id)
+    const transition* find_transition(const transition* t, event_id_t event_id) const
+    {
+      if (t == ETL_NULLPTR)
+      {
+        return Transition_Table_Begin + Transition_Table_Size;
+      }
+      else
+      {
+        return etl::find_if(t, Transition_Table_Begin + Transition_Table_Size, is_transition(event_id, this->current_state_id));
+      }
+    }
+
+    //*************************************************************************
+    /// Gets the state with id state_id.
+    /// \return A pointer to the state.
+    //*************************************************************************
+    const state* find_state(state_id_t state_id) const
     {
       return etl::find_if(State_Table_Begin, State_Table_Begin + State_Table_Size, is_state(state_id));
     }
@@ -503,7 +560,7 @@ namespace etl
         while (t != (Transition_Table_Begin + Transition_Table_Size))
         {
           // Scan the transition table from the latest position.
-          t = etl::find_if(t, (Transition_Table_Begin + Transition_Table_Size), is_transition(event_id, this->current_state_id));
+          t = find_transition(t, event_id);
 
           // Found an entry?
           if (t != (Transition_Table_Begin + Transition_Table_Size))
@@ -514,11 +571,7 @@ namespace etl
               // Shall we execute the action?
               if (t->action != ETL_NULLPTR)
               {
-#if ETL_USING_CPP11
-                (TObject_Ref.*t->action)(etl::forward<parameter_t>(data));
-#else
                 (TObject_Ref.*t->action)(data);
-#endif
               }
 
               // Changing state?
@@ -562,10 +615,26 @@ namespace etl
   private:
 
     //*************************************************************************
-    /// Gets the current state id.
-    /// \return The current state id.
+    /// Gets the transition with ID event_id and current state ID, starting from t.
+    /// \return A pointer to the transition.
     //*************************************************************************
-    const state* find_state(state_id_t state_id)
+    const transition* find_transition(const transition* t, event_id_t event_id) const
+    {
+      if (t == ETL_NULLPTR)
+      {
+        return Transition_Table_Begin + Transition_Table_Size;
+      }
+      else
+      {
+        return etl::find_if(t, Transition_Table_Begin + Transition_Table_Size, is_transition(event_id, this->current_state_id));
+      }
+    }
+
+    //*************************************************************************
+    /// Gets the state with id state_id.
+    /// \return A pointer to the state.
+    //*************************************************************************
+    const state* find_state(state_id_t state_id) const
     {
       return etl::find_if(State_Table_Begin, State_Table_Begin + State_Table_Size, is_state(state_id));
     }
@@ -658,10 +727,10 @@ namespace etl
     /// \param state_table_end_   The end of the state table.
     //*************************************************************************
     void set_transition_table(const transition* transition_table_begin_,
-      const transition* transition_table_end_)
+                              const transition* transition_table_end_)
     {
       transition_table_begin = transition_table_begin_;
-      transition_table_size = transition_table_end_ - transition_table_begin_;
+      transition_table_size  = transition_table_end_ - transition_table_begin_;
     }
 
     //*************************************************************************
@@ -670,10 +739,10 @@ namespace etl
     /// \param state_table_end_   The end of the state table.
     //*************************************************************************
     void set_state_table(const state* state_table_begin_,
-      const state* state_table_end_)
+                         const state* state_table_end_)
     {
       state_table_begin = state_table_begin_;
-      state_table_size = state_table_end_ - state_table_begin_;
+      state_table_size  = state_table_end_ - state_table_begin_;
     }
 
     //*************************************************************************
@@ -733,7 +802,7 @@ namespace etl
         while (t != transition_table_end())
         {
           // Scan the transition table from the latest position.
-          t = etl::find_if(t, transition_table_end(), is_transition(event_id, this->current_state_id));
+          t = find_transition(t, event_id);
 
           // Found an entry?
           if (t != transition_table_end())
@@ -744,11 +813,7 @@ namespace etl
               // Shall we execute the action?
               if (t->action != ETL_NULLPTR)
               {
-#if ETL_USING_CPP11
                 (object.*t->action)(etl::forward<parameter_t>(data));
-#else
-                (object.*t->action)(data);
-#endif
               }
 
               // Changing state?
@@ -792,10 +857,26 @@ namespace etl
   private:
 
     //*************************************************************************
-    /// Gets the current state id.
-    /// \return The current state id.
+    /// Gets the transition with ID event_id and current state ID, starting from t.
+    /// \return A pointer to the transition.
     //*************************************************************************
-    const state* find_state(state_id_t state_id)
+    const transition* find_transition(const transition* t, event_id_t event_id) const
+    {
+      if (t == ETL_NULLPTR)
+      {
+        return transition_table_end();
+      }
+      else
+      {
+        return etl::find_if(t, transition_table_end(), is_transition(event_id, this->current_state_id));
+      }
+    }
+
+    //*************************************************************************
+    /// Gets the state with id state_id.
+    /// \return A pointer to the state.
+    //*************************************************************************
+    const state* find_state(state_id_t state_id) const
     {
       if (state_table_begin == ETL_NULLPTR)
       {
@@ -817,6 +898,16 @@ namespace etl
     const state* state_table_end() const
     {
       return state_table_begin + state_table_size;
+    }
+
+    bool call_guard(TObject& object, const transition& t, parameter_t value)
+    {
+      return true;
+    }
+
+    void call_action(TObject& object, const transition& t, parameter_t value)
+    {
+
     }
 
     //*************************************************************************
@@ -987,7 +1078,7 @@ namespace etl
         while (t != transition_table_end())
         {
           // Scan the transition table from the latest position.
-          t = etl::find_if(t, transition_table_end(), is_transition(event_id, this->current_state_id));
+          t = find_transition(t, event_id);
 
           // Found an entry?
           if (t != transition_table_end())
@@ -1042,10 +1133,26 @@ namespace etl
   private:
 
     //*************************************************************************
-    /// Gets the current state id.
-    /// \return The current state id.
+    /// Gets the transition with ID event_id and current state ID, starting from t.
+    /// \return A pointer to the transition.
     //*************************************************************************
-    const state* find_state(state_id_t state_id)
+    const transition* find_transition(const transition* t, event_id_t event_id) const
+    {
+      if (t == ETL_NULLPTR)
+      {
+        return transition_table_end();
+      }
+      else
+      {
+        return etl::find_if(t, transition_table_end(), is_transition(event_id, this->current_state_id));
+      }
+    }
+
+    //*************************************************************************
+    /// Gets the state with id state_id.
+    /// \return A pointer to the state.
+    //*************************************************************************
+    const state* find_state(state_id_t state_id) const
     {
       if (state_table_begin == ETL_NULLPTR)
       {
