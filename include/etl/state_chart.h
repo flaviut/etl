@@ -34,7 +34,7 @@ SOFTWARE.
 #include "array.h"
 #include "array_view.h"
 #include "utility.h"
-#include "function_alternates.h"
+#include "member_function.h"
 
 #include <stdint.h>
 
@@ -48,8 +48,6 @@ namespace etl
   {
     typedef uint_least8_t state_id_t;
     typedef uint_least8_t event_id_t;
-
-
 
     //*************************************************************************
     /// Transition definition
@@ -67,6 +65,7 @@ namespace etl
         , event_id(event_id_)
         , next_state_id(next_state_id_)
         , action_s(action_)
+        , guard_s(guard_)
         , action(action_)
         , guard(guard_)
         , from_any_state(false)
@@ -82,6 +81,7 @@ namespace etl
         , event_id(event_id_)
         , next_state_id(next_state_id_)
         , action_s(action_)
+        , guard_s(guard_)
         , action(action_)
         , guard(guard_)
         , from_any_state(true)
@@ -104,7 +104,8 @@ namespace etl
       const event_id_t event_id;
       const state_id_t next_state_id;
 
-      etl::function_alternates<TObject, void, TParameter> action_s;
+      etl::member_function<void(TObject::*)(TParameter)> action_s;
+      etl::member_function<bool(TObject::*)()> guard_s;
 
       void (TObject::* const action)(TParameter);
       bool (TObject::* const guard)();
@@ -128,6 +129,7 @@ namespace etl
         , event_id(event_id_)
         , next_state_id(next_state_id_)
         , action_s(action_)
+        , guard_s(guard_)
         , action(action_)
         , guard(guard_)
         , from_any_state(false)
@@ -143,6 +145,7 @@ namespace etl
         , event_id(event_id_)
         , next_state_id(next_state_id_)
         , action_s(action_)
+        , guard_s(guard_)
         , action(action_)
         , guard(guard_)
         , from_any_state(true)
@@ -165,7 +168,8 @@ namespace etl
       const event_id_t event_id;
       const state_id_t next_state_id;
 
-      etl::function_alternates<TObject, void, void> action_s;
+      etl::member_function<void(TObject::*)(void)> action_s;
+      etl::member_function<bool(TObject::*)()> guard_s;
 
       void (TObject::* const action)();
       bool (TObject::* const guard)();
@@ -813,7 +817,11 @@ namespace etl
               // Shall we execute the action?
               if (t->action != ETL_NULLPTR)
               {
-                (object.*t->action)(etl::forward<parameter_t>(data));
+#if ETL_USING_CPP11
+                t->action_s(object, etl::forward<parameter_t>(data));
+#else
+                t->action_s(object, data);
+#endif
               }
 
               // Changing state?
