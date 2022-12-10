@@ -49,8 +49,6 @@ namespace etl
     typedef uint_least8_t state_id_t;
     typedef uint_least8_t event_id_t;
 
-
-
     //*************************************************************************
     /// Transition definition
     //*************************************************************************
