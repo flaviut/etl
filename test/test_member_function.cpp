@@ -407,7 +407,9 @@ namespace
       etl::member_function<int(TestClass&)> func(&TestClass::TestReturn);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
-      CHECK_THROW(int result = func(testClass), etl::member_function_uninitialised);
+      int result = func(testClass);
+      CHECK(function_called == FunctionCalled::TestReturnType);
+      CHECK_EQUAL(0, result);
     }
 
     ////*************************************************************************
@@ -429,7 +431,7 @@ namespace
       TestClass testClass;
 
       etl::member_function<void(TestClass&, int, Moveable&&)> func;
-      func(testClass, 1, Moveable("NotCalled"));
+      CHECK_THROW(func(testClass, 1, Moveable("NotCalled")), etl::member_function_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       CHECK(function_called == FunctionCalled::NotCalled);
@@ -465,7 +467,7 @@ namespace
       const TestClass testClass;
 
       etl::member_function<void(TestClass&, int, Moveable&&)> func;
-      func(testClass, 1, Moveable("NotCalled"));
+      CHECK_THROW(func(testClass, 1, Moveable("NotCalled")), etl::member_function_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       CHECK(function_called == FunctionCalled::NotCalled);
@@ -550,7 +552,7 @@ namespace
       const TestClass testClass;
 
       etl::member_function<void(TestClass&)> func;
-      func(testClass);
+      CHECK_THROW(func(testClass), etl::member_function_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       CHECK(function_called == FunctionCalled::NotCalled);
