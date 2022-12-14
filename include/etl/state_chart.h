@@ -104,8 +104,8 @@ namespace etl
       const event_id_t event_id;
       const state_id_t next_state_id;
 
-      etl::member_function<void(TObject::*)(TParameter)> action_s;
-      etl::member_function<bool(TObject::*)()> guard_s;
+      etl::member_function<void(TObject&, TParameter)> action_s;
+      etl::member_function<bool(TObject&)> guard_s;
 
       void (TObject::* const action)(TParameter);
       bool (TObject::* const guard)();
@@ -168,8 +168,8 @@ namespace etl
       const event_id_t event_id;
       const state_id_t next_state_id;
 
-      etl::member_function<void(TObject::*)(void)> action_s;
-      etl::member_function<bool(TObject::*)()> guard_s;
+      etl::member_function<void(TObject&)> action_s;
+      etl::member_function<bool(TObject&)> guard_s;
 
       void (TObject::* const action)();
       bool (TObject::* const guard)();

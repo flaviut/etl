@@ -88,6 +88,7 @@ namespace
   //*****************************************************************************
   struct TestClass
   {
+    //***********************************
     TestClass()
       : i(0)
       , m("Empty")
@@ -95,6 +96,7 @@ namespace
       function_called = FunctionCalled::NotCalled;
     }
 
+    //***********************************
     int TestReturnParameter(int i_, Moveable&& m_)
     {
       function_called = FunctionCalled::TestReturnParameterType;
@@ -105,6 +107,7 @@ namespace
       return i_;
     }
 
+    //***********************************
     int TestReturnParameterConst(int i_, Moveable&& m_) const
     {
       function_called = FunctionCalled::TestReturnParameterConstType;
@@ -115,6 +118,7 @@ namespace
       return i_;
     }
 
+    //***********************************
     void TestParameter(int i_, Moveable&& m_)
     {
       function_called = FunctionCalled::TestParameterType;
@@ -123,6 +127,7 @@ namespace
       m = std::move(m_);
     }
 
+    //***********************************
     void TestParameterConst(int i_, Moveable&& m_) const
     {
       function_called = FunctionCalled::TestParameterConstType;
@@ -131,6 +136,7 @@ namespace
       m = std::move(m_);
     }
 
+    //***********************************
     int TestReturn()
     {
       function_called = FunctionCalled::TestReturnType;
@@ -138,6 +144,7 @@ namespace
       return 0;
     }
 
+    //***********************************
     int TestReturnConst() const
     {
       function_called = FunctionCalled::TestReturnConstType;
@@ -145,11 +152,13 @@ namespace
       return 1;
     }
 
+    //***********************************
     void Test()
     {
       function_called = FunctionCalled::TestType;
     }
 
+    //***********************************
     void TestConst() const
     {
       function_called = FunctionCalled::TestConstType;
@@ -159,6 +168,46 @@ namespace
     mutable Moveable m;
   };
 
+  //***************************************************************************
+  static int TestFunction(int i_, Moveable&& m_)
+  {
+    function_called = FunctionCalled::TestReturnParameterType;
+    return i_;
+  }
+
+  //***************************************************************************
+  struct Functor
+  {
+    //***********************************
+    Functor()
+      : i(0)
+      , m("Empty")
+    {
+      function_called = FunctionCalled::NotCalled;
+    }
+
+    //***********************************
+    Functor(const Functor& other)
+      : i(other.i)
+      , m(std::move(other.m))
+    {
+    }
+
+    //***********************************
+    int operator()(int i_, Moveable&& m_)
+    {
+      function_called = FunctionCalled::TestReturnParameterType;
+
+      return i_;
+    }
+
+    mutable int i;
+    mutable Moveable m;
+  };
+
+  Functor functor;
+
+  //***************************************************************************
   SUITE(test_member_function)
   {
     TEST(functional)
@@ -166,26 +215,86 @@ namespace
       TestClass testClass;
       const TestClass testClassConst;
 
-      std::function<int(TestClass&, int, Moveable&&)> test1       = &TestClass::TestReturnParameter;
-      std::function<int(TestClass&, int, Moveable&&)> test2       = &TestClass::TestReturnParameterConst;
+      std::function<int(TestClass&, int, Moveable&&)>       test1 = &TestClass::TestReturnParameter;
+      std::function<int(TestClass&, int, Moveable&&)>       test2 = &TestClass::TestReturnParameterConst;
       std::function<int(const TestClass&, int, Moveable&&)> test3 = &TestClass::TestReturnParameterConst;
+      std::function<int(int, Moveable&&)>                   test4 = TestFunction;
+      std::function<int(int, Moveable&&)>                   test5 = functor;
+      std::function<int(int, Moveable&&)>                   test6 = [](int i_, Moveable&& m_) { return i_; };
 
       test1(testClass, 1, Moveable("Test1"));
       test2(testClass, 2, Moveable("Test2"));
       test3(testClassConst, 3, Moveable("Test3"));
+      test4(4, Moveable("Test4"));
+      test5(4, Moveable("Test5"));
+      test6(4, Moveable("Test6"));
     }
 
     //*************************************************************************
     TEST(test_return_parameter_default_construction)
     {
       TestClass testClass;
+      int result;
 
-      etl::member_function<int(TestClass::*)(int, Moveable&&)> fa;
-      int result = fa(testClass, 1, Moveable("NotCalled"), 2);
-      CHECK_FALSE(fa.is_valid());
-      CHECK_FALSE(fa);
+      etl::member_function<int(TestClass&, int, Moveable&&)> func;
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_THROW(result = func(testClass, 1, Moveable("NotCalled")), etl::member_function_uninitialised);
       CHECK(function_called == FunctionCalled::NotCalled);
-      CHECK_EQUAL(2, result);
+    }
+
+    //*************************************************************************
+    TEST(test_return_parameter_non_member)
+    {
+      etl::member_function<int(int, Moveable&&)> func(TestFunction);
+      int result = func(1, Moveable("TestReturnParameterType"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK(function_called == FunctionCalled::TestReturnParameterType);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST(test_return_parameter_lambda)
+    {
+      auto lambda = [](int i_, Moveable&& m_) 
+      { 
+        function_called = FunctionCalled::TestReturnParameterType; 
+        return i_; 
+      };
+
+      etl::member_function<int(int, Moveable&&)> func(lambda);
+      int result = func(1, Moveable("TestReturnParameterType"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK(function_called == FunctionCalled::TestReturnParameterType);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST(test_return_parameter_functor)
+    {
+      Functor functor;
+
+      etl::member_function<int(int, Moveable&&)> func(functor);
+      int result = func(1, Moveable("TestReturnParameterType"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK(function_called == FunctionCalled::TestReturnParameterType);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST(test_return_parameter_const_functor)
+    {
+      const Functor functor;
+
+      etl::member_function<int(int, Moveable&&)> func(functor);
+      int result = func(1, Moveable("TestReturnParameterConstType"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK(function_called == FunctionCalled::TestReturnParameterType);
+      CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
@@ -193,10 +302,10 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass::*)(int, Moveable&&)> fa(&TestClass::TestReturnParameter);
-      int result = fa(testClass, 1, Moveable("TestReturnParameterType"), 2);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<int(TestClass&, int, Moveable&&)> func(&TestClass::TestReturnParameter);
+      int result = func(testClass, 1, Moveable("TestReturnParameterType"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestReturnParameterType);
       CHECK_EQUAL(1, result);
     }
@@ -206,10 +315,10 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass::*)(int, Moveable&&)> fa(&TestClass::TestReturnParameterConst);
-      int result = fa(testClass, 1, Moveable("TestReturnParameterConstType"), 2);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<int(TestClass&, int, Moveable&&)> func(&TestClass::TestReturnParameterConst);
+      int result = func(testClass, 1, Moveable("TestReturnParameterConstType"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestReturnParameterConstType);
       CHECK_EQUAL(1, result);
     }
@@ -218,24 +327,12 @@ namespace
     TEST(test_return_parameter_default_construction_const_object)
     {
       const TestClass testClass;
+      int result;
 
-      etl::member_function<int(TestClass::*)(int, Moveable&&)> fa;
-      int result = fa(testClass, 1, Moveable("NotCalled"), 2);
-      CHECK_FALSE(fa.is_valid());
-      CHECK_FALSE(fa);
-      CHECK(function_called == FunctionCalled::NotCalled);
-      CHECK_EQUAL(2, result);
-    }
-
-    //*************************************************************************
-    TEST(test_return_parameter_non_const_const_object)
-    {
-      const TestClass testClass;
-
-      etl::member_function<int(TestClass::*)(int, Moveable&&)> fa(&TestClass::TestReturnParameter);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
-      CHECK_THROW(int result = fa(testClass, 1, Moveable("TestReturnParameterType"), 2), etl::member_function_call_to_non_const);
+      etl::member_function<int(TestClass&, int, Moveable&&)> func;
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_THROW(result = func(testClass, 1, Moveable("NotCalled")), etl::member_function_uninitialised);
       CHECK(function_called == FunctionCalled::NotCalled);
     }
 
@@ -244,10 +341,10 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(TestClass::*)(int, Moveable&&)> fa(&TestClass::TestReturnParameterConst);
-      int result = fa(testClass, 1, Moveable("TestReturnParameterConstType"), 2);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<int(const TestClass&, int, Moveable&&)> func(&TestClass::TestReturnParameterConst);
+      int result = func(testClass, 1, Moveable("TestReturnParameterConstType"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestReturnParameterConstType);
       CHECK_EQUAL(1, result);
     }
@@ -257,12 +354,12 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass::*)(void)> fa;
-      int result = fa(testClass, 2);
-      CHECK_FALSE(fa.is_valid());
-      CHECK_FALSE(fa);
+      etl::member_function<int(TestClass&)> func;
+      int result = func.call_if(testClass);
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
       CHECK(function_called == FunctionCalled::NotCalled);
-      CHECK_EQUAL(2, result);
+      CHECK_EQUAL(int(), result);
     }
 
     //*************************************************************************
@@ -270,10 +367,10 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass::*)(void)> fa(&TestClass::TestReturn);
-      int result = fa(testClass, 2);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<int(TestClass&)> func(&TestClass::TestReturn);
+      int result = func(testClass);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestReturnType);
       CHECK_EQUAL(0, result);
     }
@@ -283,10 +380,10 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass::*)(void)> fa(&TestClass::TestReturnConst);
-      int result = fa(testClass, 2);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<int(TestClass&)> func(&TestClass::TestReturnConst);
+      int result = func(testClass);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestReturnConstType);
       CHECK_EQUAL(1, result);
     }
@@ -296,12 +393,10 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(TestClass::*)(void)> fa;
-      int result = fa(testClass, 2);
-      CHECK_FALSE(fa.is_valid());
-      CHECK_FALSE(fa);
-      CHECK(function_called == FunctionCalled::NotCalled);
-      CHECK_EQUAL(2, result);
+      etl::member_function<int(TestClass&)> func;
+      CHECK_THROW(int result = func(testClass), etl::member_function_uninitialised);
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
     }
 
     //*************************************************************************
@@ -309,22 +404,21 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(TestClass::*)(void)> fa(&TestClass::TestReturn);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
-      CHECK_THROW(int result = fa(testClass, 2), etl::member_function_call_to_non_const);
-      CHECK(function_called == FunctionCalled::NotCalled);
+      etl::member_function<int(TestClass&)> func(&TestClass::TestReturn);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_THROW(int result = func(testClass), etl::member_function_uninitialised);
     }
 
-    //*************************************************************************
+    ////*************************************************************************
     TEST(test_return_const_const_object)
     {
       const TestClass testClass;
 
-      etl::member_function<int(TestClass::*)(void)> fa(&TestClass::TestReturnConst);
-      int result = fa(testClass, 2);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<int(TestClass&)> func(&TestClass::TestReturnConst);
+      int result = func(testClass);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestReturnConstType);
       CHECK_EQUAL(1, result);
     }
@@ -334,10 +428,10 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass::*)(int, Moveable&&)> fa;
-      fa(testClass, 1, Moveable("NotCalled"));
-      CHECK_FALSE(fa.is_valid());
-      CHECK_FALSE(fa);
+      etl::member_function<void(TestClass&, int, Moveable&&)> func;
+      func(testClass, 1, Moveable("NotCalled"));
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
       CHECK(function_called == FunctionCalled::NotCalled);
     }
 
@@ -346,10 +440,10 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass::*)(int, Moveable&&)> fa(&TestClass::TestParameter);
-      fa(testClass, 1, Moveable("TestParameterConstType"));
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<void(TestClass&, int, Moveable&&)> func(&TestClass::TestParameter);
+      func(testClass, 1, Moveable("TestParameterConstType"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestParameterType);
     }
 
@@ -358,10 +452,10 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass::*)(int, Moveable&&)> fa(&TestClass::TestParameterConst);
-      fa(testClass, 1, Moveable("TestParameterConstType"));
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<void(TestClass&, int, Moveable&&)> func(&TestClass::TestParameterConst);
+      func(testClass, 1, Moveable("TestParameterConstType"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestParameterConstType);
     }
 
@@ -370,22 +464,10 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(TestClass::*)(int, Moveable&&)> fa;
-      fa(testClass, 1, Moveable("NotCalled"));
-      CHECK_FALSE(fa.is_valid());
-      CHECK_FALSE(fa);
-      CHECK(function_called == FunctionCalled::NotCalled);
-    }
-
-    //*************************************************************************
-    TEST(test_parameter_const_object)
-    {
-      const TestClass testClass;
-
-      etl::member_function<void(TestClass::*)(int, Moveable&&)> fa(&TestClass::TestParameter);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
-      CHECK_THROW(fa(testClass, 1, Moveable("TestParameterConstType")), etl::member_function_call_to_non_const);
+      etl::member_function<void(TestClass&, int, Moveable&&)> func;
+      func(testClass, 1, Moveable("NotCalled"));
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
       CHECK(function_called == FunctionCalled::NotCalled);
     }
 
@@ -394,10 +476,10 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(TestClass::*)(int, Moveable&&)> fa(&TestClass::TestParameterConst);
-      fa(testClass, 1, Moveable("TestParameterConstType"));
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<void(TestClass&, int, Moveable&&)> func(&TestClass::TestParameterConst);
+      func(testClass, 1, Moveable("TestParameterConstType"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestParameterConstType);
     }
 
@@ -406,10 +488,10 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass::*)(void)> fa;
-      fa(testClass);
-      CHECK_FALSE(fa.is_valid());
-      CHECK_FALSE(fa);
+      etl::member_function<void(TestClass&)> func;
+      CHECK_THROW(func(testClass), etl::member_function_uninitialised);
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
       CHECK(function_called == FunctionCalled::NotCalled);
     }
 
@@ -418,10 +500,10 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass::*)(void)> fa(&TestClass::Test);
-      fa(testClass);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<void(TestClass&)> func(&TestClass::Test);
+      func(testClass);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestType);
     }
 
@@ -430,11 +512,36 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass::*)(void)> fa(&TestClass::TestConst);
-      fa(testClass);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<void(TestClass&)> func(&TestClass::TestConst);
+      func(testClass);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestConstType);
+    }
+
+    //*************************************************************************
+    TEST(test_functor)
+    {
+      struct Functor
+      {
+        Functor()
+        {
+          function_called = FunctionCalled::NotCalled;
+        }
+
+        void operator()()
+        {
+          function_called = FunctionCalled::TestReturnParameterType;
+        }
+      };
+
+      Functor functor;
+
+      etl::member_function<void()> func(functor);
+      func();
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK(function_called == FunctionCalled::TestReturnParameterType);
     }
 
     //*************************************************************************
@@ -442,22 +549,10 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(TestClass::*)(void)> fa;
-      fa(testClass);
-      CHECK_FALSE(fa.is_valid());
-      CHECK_FALSE(fa);
-      CHECK(function_called == FunctionCalled::NotCalled);
-    }
-
-    //*************************************************************************
-    TEST(test_non_const_const_object)
-    {
-      const TestClass testClass;
-
-      etl::member_function<void(TestClass::*)(void)> fa(&TestClass::Test);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
-      CHECK_THROW(fa(testClass), etl::member_function_call_to_non_const);
+      etl::member_function<void(TestClass&)> func;
+      func(testClass);
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
       CHECK(function_called == FunctionCalled::NotCalled);
     }
 
@@ -466,10 +561,10 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(TestClass::*)(void)> fa(&TestClass::TestConst);
-      fa(testClass);
-      CHECK_TRUE(fa.is_valid());
-      CHECK_TRUE(fa);
+      etl::member_function<void(TestClass&)> func(&TestClass::TestConst);
+      func(testClass);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK(function_called == FunctionCalled::TestConstType);
     }
   };

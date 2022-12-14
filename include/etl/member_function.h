@@ -34,6 +34,7 @@ SOFTWARE.
 #include "platform.h"
 #include "nullptr.h"
 #include "utility.h"
+#include "optional.h"
 #include "exception.h"
 #include "error_handler.h"
 
@@ -50,7 +51,7 @@ SOFTWARE.
 namespace etl
 {
   //***************************************************************************
-  /// The for member_function exceptions.
+  /// The base for member_function exceptions.
   //***************************************************************************
   class member_function_exception : public exception
   {
@@ -63,235 +64,766 @@ namespace etl
   };
 
   //***************************************************************************
-  /// The out of range exceptions.
+  /// The uninitialised exception.
   //***************************************************************************
-  class member_function_call_to_non_const : public member_function_exception
+  class member_function_uninitialised : public member_function_exception
   {
   public:
 
-    member_function_call_to_non_const(string_type file_name_, numeric_type line_number_)
-      : member_function_exception(ETL_ERROR_TEXT("member_function:call to non-const", ETL_MEMBER_FUNCTION_FILE_ID"A"), file_name_, line_number_)
+    member_function_uninitialised(string_type file_name_, numeric_type line_number_)
+      : member_function_exception(ETL_ERROR_TEXT("member_function:uninitialised", ETL_MEMBER_FUNCTION_FILE_ID"A"), file_name_, line_number_)
     {
     }
   };
 
+  //***************************************************************************
+  /// 
+  //***************************************************************************
   template <typename T>
   class member_function;
 
   //***************************************************************************
-  /// Template to wrap one of two member functions, one const, one non const.
+  /// Template to wrap free functions, lambdas and functors.
   //***************************************************************************
-  template <typename TObject, typename TReturn, typename... TParameter>
-  class member_function<TReturn(TObject::*)(TParameter...)>
+  template <typename TReturn, typename... TParameters>
+  class member_function<TReturn(TParameters...)>
   {
   public:
 
-    typedef TReturn(TObject::* const non_const_function_t)(TParameter...);
-    typedef TReturn(TObject::* const const_function_t)(TParameter...) const;
+    using function_type = TReturn(*)(TParameters...);
 
-    static ETL_CONSTANT char No_Function        = 0;
-    static ETL_CONSTANT char Non_Const_Function = 1;
-    static ETL_CONSTANT char Const_Function     = 2;
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    ETL_CONSTEXPR14 member_function() = default;
 
-    //*******************************
-    ETL_CONSTEXPR14 member_function()
-      : function_union()
-      , function_type(No_Function)
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    ETL_CONSTEXPR14 member_function(const member_function& other) = default;
+
+    //*************************************************************************
+    /// Create from function.
+    //*************************************************************************
+    ETL_CONSTEXPR14 explicit member_function(function_type function_)
     {
+      invocation.alternate.func = function_;
+      invocation.stub           = function_stub;
     }
 
-    //*******************************
-    ETL_CONSTEXPR14 explicit member_function(non_const_function_t function_)
-      : function_union(function_)
-      , function_type(Non_Const_Function)
+    //*************************************************************************
+    /// Create from lambda or functor.
+    //*************************************************************************
+    template <typename TLambda, typename = etl::enable_if_t<etl::is_class<TLambda>::value, void>>
+    ETL_CONSTEXPR14 explicit member_function(const TLambda& instance_)
     {
+      invocation.alternate.object = (void*)(&instance_);
+      invocation.stub             = lambda_stub<TLambda>;
     }
 
-    //*******************************
-    ETL_CONSTEXPR14 explicit member_function(const_function_t function_)
-      : function_union(function_)
-      , function_type(Const_Function)
-    {
-    }
-
-    //*******************************
-    ETL_CONSTEXPR14 member_function(const member_function& other)
-      : function_union(other.function_union)
-      , function_type(other.function_type)
-    {
-    }
-
-    //*******************************
-    ETL_CONSTEXPR14 member_function& operator =(const member_function& rhs)
-    {
-      if (this != &other)
-      {
-        function_union = other.function_union;
-        function_type  = other.function_type;
-      }
-
-      return *this;
-    }
-
-    //*******************************
+    //*************************************************************************
+    ///
+    //*************************************************************************
     bool is_valid() const
     {
-      return (function_type != No_Function);             
+      return (invocation.stub != ETL_NULLPTR);
     }
 
-    //*******************************
+    //*************************************************************************
+    ///
+    //*************************************************************************
     operator bool() const
     {
       return is_valid();
     }
 
-    //*******************************
+    //*************************************************************************
+    /// Equality operator
+    //*************************************************************************
     ETL_CONSTEXPR14 bool operator ==(const member_function& rhs) const
     {
-      return (function_union == other.function_union) && (function_type == other.function_type);
+      return invocation == rhs.invocation;
     }
 
-    //*******************************
+    //*************************************************************************
+    /// Inequality operator
+    //*************************************************************************
     ETL_CONSTEXPR14 bool operator !=(const member_function& rhs) const
     {
-      return (function_union != other.function_union) || (function_type != other.function_type);
+      return invocation != rhs.invocation;
     }
 
-    //*******************************
-    template <typename UReturn = TReturn>
-    etl::enable_if_t<etl::is_void<UReturn>::value, UReturn>
-      operator()(TObject& object, TParameter... parameter) const
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    template <typename TRet = TReturn>
+    etl::enable_if_t<is_void<TRet>::value, TRet>
+      call_if(TParameters... params) const
     {
-      switch (function_type)
+      if (is_valid())
       {
-        case Non_Const_Function:
-        {
-          (object.*function_union.non_const_function)(etl::forward<TParameter>(parameter)...);
-          break;
-        }
-
-        case Const_Function:
-        {
-          (object.*function_union.const_function)(etl::forward<TParameter>(parameter)...);
-          break;
-        }
-
-        case No_Function:
-        default:
-        {
-          break;
-        }
+        operator()(TParameters... params);
       }
     }
 
-    //*******************************
-    template <typename UReturn = TReturn>
-    etl::enable_if_t<etl::is_void<UReturn>::value, UReturn>
-      operator()(const TObject& object, TParameter... parameter) const
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    template <typename TRet = TReturn>
+    etl::enable_if_t<!is_void<TRet>::value, TRet>
+      call_if(TParameters... params) const
     {
-      switch (function_type)
+      if (is_valid())
       {
-        case Non_Const_Function:
-        {
-          ETL_ASSERT_FAIL(ETL_ERROR(member_function_call_to_non_const));
-          break;
-        }
-        
-        case Const_Function:
-        {
-          (object.*function_union.const_function)(etl::forward<TParameter>(parameter)...);
-          break;
-        }
-
-        case No_Function:
-        default:
-        {
-          break;
-        }
+        return operator()(TParameters... params);
+      }
+      else
+      {
+        return TReturn();
       }
     }
 
-    //*******************************
-    template <typename UReturn = TReturn>
-    etl::enable_if_t<!etl::is_void<UReturn>::value, UReturn>
-      operator()(TObject& object, TParameter... parameter, const UReturn& default_value) const
+    //*************************************************************************
+    /// 
+    //*************************************************************************
+    template <typename TAlternative, typename TRet = TReturn>
+    etl::enable_if_t<!is_void<TRet>::value, TRet>
+      call_or(TAlternative alternative, TParameters... params) const
     {
-      switch (function_type)
+      if (is_valid())
       {
-        case Non_Const_Function:
-        {
-          return (object.*function_union.non_const_function)(etl::forward<TParameter>(parameter)...);
-          break;
-        }
-
-        case Const_Function:
-        {
-          return (object.*function_union.const_function)(etl::forward<TParameter>(parameter)...);
-          break;
-        }
-
-        case No_Function:
-        default:
-        {
-          return default_value;
-        }
+        return operator()(TParameters... params);
+      }
+      else
+      {
+        return alternative;
       }
     }
 
-    //*******************************
-    template <typename UReturn = TReturn>
-    etl::enable_if_t<!etl::is_void<UReturn>::value, UReturn>
-      operator()(const TObject& object, TParameter... parameter, const UReturn& default_value) const
+    //*************************************************************************
+    /// Execute the function.
+    //*************************************************************************
+    TReturn operator()(TParameters... params) const
     {
-      switch (function_type)
-      {
-        case Non_Const_Function:
-        {
-          ETL_ASSERT_FAIL(ETL_ERROR(member_function_call_to_non_const));
-          break;
-        }
-
-        case Const_Function:
-        {
-          return (object.*function_union.const_function)(etl::forward<TParameter>(parameter)...);
-          break;
-        }
-
-        case No_Function:
-        default:
-        {
-          return default_value;
-        }
-      }
+      return (*invocation.stub)(invocation, etl::forward<TParameters>(params)...);
     }
 
   private:
 
-    union fu
+    struct invocation_element;
+
+    using stub_type = TReturn(*)(const invocation_element&, TParameters...);
+
+    //*************************************************************************
+    /// The internal invocation object.
+    //*************************************************************************
+    struct invocation_element
     {
-      //*******************************
-      ETL_CONSTEXPR14 fu()
-        : non_const_function(ETL_NULLPTR)
+      invocation_element() = default;
+      invocation_element(const invocation_element&) = default;
+
+      //*************************************************************************
+      ///
+      //*************************************************************************
+      ETL_CONSTEXPR14 invocation_element(void* object_, stub_type stub_)
+        : alternate(object_)
+        , stub(stub_)
       {
       }
 
-      //*******************************
-      ETL_CONSTEXPR14 fu(non_const_function_t function_)
-        : non_const_function(function_)
+      //*************************************************************************
+      ///
+      //*************************************************************************
+      ETL_CONSTEXPR14 invocation_element(function_type func_, stub_type stub_)
+        : alternate(func_)
+        , stub(stub_)
       {
       }
 
-      //*******************************
-      ETL_CONSTEXPR14 fu(const_function_t function_)
-        : const_function(function_)
+      //*************************************************************************
+      ///
+      //*************************************************************************
+      ETL_CONSTEXPR14 bool operator ==(const invocation_element& rhs) const
       {
+        return (rhs.object == object) &&  (rhs.stub == stub) && (rhs.func == func);
       }
 
-      non_const_function_t non_const_function;
-      const_function_t     const_function;
-    } function_union;
+      //*************************************************************************
+      ///
+      //*************************************************************************
+      ETL_CONSTEXPR14 bool operator !=(const invocation_element& rhs) const
+      {
+        return !(*this == rhs);
+      }
 
-    char function_type;
+      //*************************************************************************
+      ///
+      //*************************************************************************
+      union alternate_method_t
+      {
+        alternate_method_t()
+          : object(ETL_NULLPTR)
+        {
+        }
+
+        alternate_method_t(void* object_)
+          : object(object_)
+        {
+        }
+
+        alternate_method_t(function_type func_)
+          : func(func_)
+        {
+        }
+
+        void*         object;
+        function_type func;
+      } alternate;
+
+      stub_type stub = ETL_NULLPTR;
+    };
+
+    //*************************************************************************
+    /// Stub call for a free function.
+    //*************************************************************************
+    static ETL_CONSTEXPR14 TReturn function_stub(const invocation_element& invocation, TParameters... params)
+    {
+      return (*invocation.alternate.func)(etl::forward<TParameters>(params)...);
+    }
+
+    //*************************************************************************
+    /// Stub call for a lambda or functor.
+    //*************************************************************************
+    template <typename TLambda>
+    static ETL_CONSTEXPR14 TReturn lambda_stub(const invocation_element& invocation, TParameters... params)
+    {
+      TLambda* p = static_cast<TLambda*>(invocation.alternate.object);
+      return (p->operator())(etl::forward<TParameters>(params)...);
+    }
+
+    //*************************************************************************
+    /// The invocation object.
+    //*************************************************************************
+    invocation_element invocation;
+  };
+
+  //***************************************************************************
+  /// Template to wrap member functions.
+  //***************************************************************************
+  template <typename TObject, typename TReturn, typename... TParameters>
+  class member_function<TReturn(TObject&, TParameters...)>
+  {
+  public:
+
+    using method_type       = TReturn(TObject::*)(TParameters...);
+    using const_method_type = TReturn(TObject::*)(TParameters...) const;
+
+    //*************************************************************************
+    /// Default constructor
+    //*************************************************************************
+    ETL_CONSTEXPR14 
+    member_function() = default;
+
+    //*************************************************************************
+    /// Copy constructor
+    //*************************************************************************
+    ETL_CONSTEXPR14 
+    member_function(const member_function& other) = default;
+
+    //*************************************************************************
+    /// Construct from method
+    //*************************************************************************
+    ETL_CONSTEXPR14 
+    explicit member_function(method_type method_)
+    {
+      invocation.alternate_method.method = method_;
+      invocation.alternate_stub.stub     = method_stub;
+    }
+
+    //*************************************************************************
+    /// Construct from const method
+    //*************************************************************************
+    ETL_CONSTEXPR14 
+    explicit member_function(const_method_type const_method_)
+    {
+      invocation.alternate_method.const_method = const_method_;
+      invocation.alternate_stub.const_stub     = const_method_stub;
+    }
+
+    //*************************************************************************
+    /// Returns true if the member_function is initialised
+    //*************************************************************************
+    ETL_NODISCARD
+    ETL_CONSTEXPR14
+    bool is_valid() const
+    {
+      return (invocation.alternate_stub.stub != ETL_NULLPTR) && (invocation.alternate_stub.const_stub != ETL_NULLPTR);
+    }
+
+    //*************************************************************************
+    /// Returns true if the member_function is initialised
+    //*************************************************************************
+    ETL_NODISCARD
+    ETL_CONSTEXPR14
+    operator bool() const
+    {
+      return is_valid();
+    }
+
+    //*************************************************************************
+    /// Equality operator
+    //*************************************************************************
+    ETL_NODISCARD
+    ETL_CONSTEXPR14 
+    bool operator ==(const member_function& rhs) const
+    {
+      return invocation == rhs.invocation;
+    }
+
+    //*************************************************************************
+    /// Inequality operator
+    //*************************************************************************
+    ETL_NODISCARD
+    ETL_CONSTEXPR14
+    bool operator !=(const member_function& rhs) const
+    {
+      return invocation != rhs.invocation;
+    }
+
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    template <typename TRet = TReturn>
+    etl::enable_if_t<is_void<TRet>::value, bool>
+      call_if(TObject& object, TParameters... params) const
+    {
+      if (is_valid())
+      {
+        operator()(etl::forward<TParameters>(params)...);
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    template <typename TRet = TReturn>
+    etl::enable_if_t<!is_void<TRet>::value, etl::optional<TRet>>
+      call_if(TObject& object, TParameters... params) const
+    {
+      etl::optional<TRet> result;
+
+      if (is_valid())
+      {
+        result = operator()(object, etl::forward<TParameters>(params)...);
+      }
+
+      return result;
+    }
+
+    //*************************************************************************
+    /// 
+    //*************************************************************************
+    template <typename TAlternative, typename TRet = TReturn>
+    etl::enable_if_t<!is_void<TRet>::value, TRet>
+      call_or(TAlternative alternative, TObject& object, TParameters... params) const
+    {
+      if (is_valid())
+      {
+        return operator()(object, etl::forward<TParameters>(params)...);
+      }
+      else
+      {
+        return alternative(param);
+      }
+    }
+
+    //*************************************************************************
+    /// Execute the function.
+    //*************************************************************************
+    TReturn operator()(TObject& object, TParameters... params) const
+    {
+      ETL_ASSERT_AND_RETURN_VALUE(is_valid(), ETL_ERROR(etl::member_function_uninitialised), TReturn());
+
+      return (*invocation.alternate_stub.stub)(object, invocation, etl::forward<TParameters>(params)...);
+    }
+
+    //*************************************************************************
+    /// Execute the function.
+    //*************************************************************************
+    TReturn operator()(const TObject& object, TParameters... params) const
+    {
+      ETL_ASSERT_AND_RETURN_VALUE(is_valid(), ETL_ERROR(etl::member_function_uninitialised), TReturn());
+
+      return (*invocation.alternate_stub.const_stub)(object, invocation, etl::forward<TParameters>(params)...);
+    }
+
+  private:
+
+    struct invocation_element;
+
+    using stub_type       = TReturn(*)(TObject&, const invocation_element&, TParameters...);
+    using const_stub_type = TReturn(*)(const TObject&, const invocation_element&, TParameters...);
+
+    //*************************************************************************
+    /// The internal invocation object.
+    //*************************************************************************
+    struct invocation_element
+    {
+      invocation_element() = default;
+      invocation_element(const invocation_element&) = default;
+
+      //*************************************************************************
+      /// Equality operator
+      //*************************************************************************
+      ETL_CONSTEXPR14 bool operator ==(const invocation_element& rhs) const
+      {
+        return ((rhs.alternate_stub.stub       == stub)       && (rhs.alternate_stub.method == method)) ||
+               ((rhs.alternate_stub.const_stub == const_stub) && (rhs.alternate_stub.const_method == const_method))
+      }
+
+      //*************************************************************************
+      /// Inequality operator
+      //*************************************************************************
+      ETL_CONSTEXPR14 bool operator !=(const invocation_element& rhs) const
+      {
+        return !(*this == rhs);
+      }
+
+      //*************************************************************************
+      ///
+      //*************************************************************************
+      template <typename TRet = TReturn>
+      etl::enable_if_t<is_void<TRet>::value, TRet>
+        call_if(TObject& object, TParameters... params) const
+      {
+        if (is_valid())
+        {
+          operator()(etl::forward<TParameters>(params)...);
+        }
+      }
+
+      //*************************************************************************
+      ///
+      //*************************************************************************
+      template <typename TRet = TReturn>
+      etl::enable_if_t<!is_void<TRet>::value, TRet>
+        call_if(TObject& object, TParameters... params) const
+      {
+        if (is_valid())
+        {
+          return operator()(object, etl::forward<TParameters>(params)...);
+        }
+        else
+        {
+          return TReturn();
+        }
+      }
+
+      //*************************************************************************
+      /// 
+      //*************************************************************************
+      template <typename TAlternative, typename TRet = TReturn>
+      etl::enable_if_t<!is_void<TRet>::value, TRet>
+        call_or(TAlternative alternative, TObject& object, TParameters... params) const
+      {
+        if (is_valid())
+        {
+          return operator()(object, etl::forward<TParameters>(params)...);
+        }
+        else
+        {
+          return alternative;
+        }
+      }
+
+      //*************************************************************************
+      /// Union of alternate methods
+      //*************************************************************************
+      union alternate_method_t
+      {
+        alternate_method_t()
+          : method(ETL_NULLPTR)
+        {
+        }
+
+        alternate_method_t(method_type method_)
+          : method(method_)
+        {
+        }
+
+        alternate_method_t(const_method_type const_method_)
+          : const_method(const_method_)
+        {
+        }
+
+        method_type       method;
+        const_method_type const_method;
+      } alternate_method;
+
+      //*************************************************************************
+      /// Union of alternate stubs
+      //*************************************************************************
+      union alternate_stub_t
+      {
+        alternate_stub_t()
+          : stub(ETL_NULLPTR)
+        {
+        }
+
+        alternate_stub_t(method_type stub_)
+          : stub(stub_)
+        {
+        }
+
+        alternate_stub_t(const_method_type const_stub_)
+          : const_stub(const_stub_)
+        {
+        }
+
+        stub_type       stub;
+        const_stub_type const_stub;
+      } alternate_stub;    
+    };
+
+    //*************************************************************************
+    /// Stub call for a member function.
+    //*************************************************************************
+    static ETL_CONSTEXPR14 TReturn method_stub(TObject& object, const invocation_element& invocation, TParameters... params)
+    {
+      method_type pf = invocation.alternate_method.method;
+      return (object.*pf)(etl::forward<TParameters>(params)...);
+    }
+
+    //*************************************************************************
+    /// Stub call for a const member function.
+    //*************************************************************************
+    static ETL_CONSTEXPR14 TReturn const_method_stub(const TObject& object, const invocation_element& invocation, TParameters... params)
+    {
+      const_method_type pf = invocation.alternate_method.const_method;
+      return (object.*pf)(etl::forward<TParameters>(params)...);
+    }
+
+    //*************************************************************************
+    /// The invocation object.
+    //*************************************************************************
+    invocation_element invocation;
+  };
+
+  //***************************************************************************
+  /// Template to wrap member functions.
+  //***************************************************************************
+  template <typename TObject, typename TReturn, typename... TParameters>
+  class member_function<TReturn(const TObject&, TParameters...)>
+  {
+  public:
+
+    using method_type = TReturn(TObject::*)(TParameters...);
+    using const_method_type = TReturn(TObject::*)(TParameters...) const;
+
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    ETL_CONSTEXPR14 member_function() = default;
+
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    ETL_CONSTEXPR14 member_function(const member_function& other) = default;
+
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    ETL_CONSTEXPR14 explicit member_function(const_method_type const_method_)
+    {
+      invocation.alternate_method.const_method = const_method_;
+      invocation.alternate_stub.const_stub     = const_method_stub;
+    }
+
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    bool is_valid() const
+    {
+      return (invocation.alternate_stub.stub != ETL_NULLPTR) && (invocation.alternate_stub.const_stub != ETL_NULLPTR);
+    }
+
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    operator bool() const
+    {
+      return is_valid();
+    }
+
+    //*************************************************************************
+    /// Equality operator
+    //*************************************************************************
+    ETL_CONSTEXPR14 bool operator ==(const member_function& rhs) const
+    {
+      return invocation == rhs.invocation;
+    }
+
+    //*************************************************************************
+    /// Inequality operator
+    //*************************************************************************
+    ETL_CONSTEXPR14 bool operator !=(const member_function& rhs) const
+    {
+      return invocation != rhs.invocation;
+    }
+
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    template <typename TRet = TReturn>
+    etl::enable_if_t<is_void<TRet>::value, TRet>
+      call_if(TObject& object, TParameters... params) const
+    {
+      if (is_valid())
+      {
+        operator()(etl::forward<TParameters>(params)...);
+      }
+    }
+
+    //*************************************************************************
+    ///
+    //*************************************************************************
+    template <typename TRet = TReturn>
+    etl::enable_if_t<!is_void<TRet>::value, TRet>
+      call_if(TObject& object, TParameters... params) const
+    {
+      if (is_valid())
+      {
+        return operator()(object, etl::forward<TParameters>(params)...);
+      }
+      else
+      {
+        return TReturn();
+      }
+    }
+
+    //*************************************************************************
+    /// 
+    //*************************************************************************
+    template <typename TAlternative, typename TRet = TReturn>
+    etl::enable_if_t<!is_void<TRet>::value, TRet>
+      call_or(TAlternative alternative, TObject& object, TParameters... params) const
+    {
+      if (is_valid())
+      {
+        return operator()(object, etl::forward<TParameters>(params)...);
+      }
+      else
+      {
+        return alternative;
+      }
+    }
+
+    //*************************************************************************
+    /// Execute the function.
+    //*************************************************************************
+    TReturn operator()(const TObject& object, TParameters... params) const
+    {
+      return (*invocation.alternate_stub.const_stub)(object, invocation, etl::forward<TParameters>(params)...);
+    }
+
+  private:
+
+    struct invocation_element;
+
+    using stub_type = TReturn(*)(TObject&, const invocation_element&, TParameters...);
+    using const_stub_type = TReturn(*)(const TObject&, const invocation_element&, TParameters...);
+
+    //*************************************************************************
+    /// The internal invocation object.
+    //*************************************************************************
+    struct invocation_element
+    {
+      invocation_element() = default;
+      invocation_element(const invocation_element&) = default;
+
+      //*************************************************************************
+      ///
+      //*************************************************************************
+      ETL_CONSTEXPR14 bool operator ==(const invocation_element& rhs) const
+      {
+        return (rhs.stub == stub) && (rhs.method == method);
+      }
+
+      //*************************************************************************
+      ///
+      //*************************************************************************
+      ETL_CONSTEXPR14 bool operator !=(const invocation_element& rhs) const
+      {
+        return !(*this == rhs);
+      }
+
+      //*************************************************************************
+      ///
+      //*************************************************************************
+      union alternate_method_t
+      {
+        alternate_method_t()
+          : method(ETL_NULLPTR)
+        {
+        }
+
+        alternate_method_t(method_type method_)
+          : method(method_)
+        {
+        }
+
+        alternate_method_t(const_method_type const_method_)
+          : const_method(const_method_)
+        {
+        }
+
+        method_type       method;
+        const_method_type const_method;
+      } alternate_method;
+
+      //*************************************************************************
+      ///
+      //*************************************************************************
+      union alternate_stub_t
+      {
+        alternate_stub_t()
+          : stub(ETL_NULLPTR)
+        {
+        }
+
+        alternate_stub_t(method_type stub_)
+          : stub(stub_)
+        {
+        }
+
+        alternate_stub_t(const_method_type const_stub_)
+          : const_stub(const_stub_)
+        {
+        }
+
+        stub_type       stub;
+        const_stub_type const_stub;
+      } alternate_stub;
+    };
+
+    //*************************************************************************
+    /// Stub call for a const member function.
+    //*************************************************************************
+    static ETL_CONSTEXPR14 TReturn const_method_stub(const TObject& object, const invocation_element& invocation, TParameters... params)
+    {
+      const_method_type pf = invocation.alternate_method.const_method;
+      return (object.*pf)(etl::forward<TParameters>(params)...);
+    }
+
+    //*************************************************************************
+    /// The invocation object.
+    //*************************************************************************
+    invocation_element invocation;
   };
 }
 
