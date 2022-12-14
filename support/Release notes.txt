@@ -1,4 +1,30 @@
 ===============================================================================
+20.35.6
+#643 Don't use push_macro and pull_macro with Tasking compiler
+
+===============================================================================
+20.35.5
+#641 Wrong usage of enable_if for none C++11 compilers
+
+===============================================================================
+20.35.4
+#639 Only build tests if top level project
+
+===============================================================================
+20.35.3
+#636 Fix bug in optional emplace for pod type specialisation
+
+===============================================================================
+20.35.2
+#634 Strange behavior in move assignment of optional
+
+===============================================================================
+20.35.1
+#628 Fixed set of ETL_NO_STL flag in meson.build
+#631 unique_ptr derived copy or move to base does not compile
+Removed duplicate include in etl::array_view
+
+===============================================================================
 20.35.0
 #596 Helper functions to convert strings to numeric values. etl::to_arithmetic
 #600 Fix 'maybe-uninitialized' g++ error on macros
