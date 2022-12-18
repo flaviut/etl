@@ -217,15 +217,15 @@
     <Filter Include="Tests\Error Handler\Exceptions_And_Log_Errors">
       <UniqueIdentifier>{de372ec9-d193-4956-871f-065414a9d3be}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ETL\Callbacks">
+      <UniqueIdentifier>{47bd29b6-36f1-4cb3-9615-973ae50123e8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\etl\enum_type.h">
       <Filter>ETL\Utilities</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\etl\exception.h">
-      <Filter>ETL\Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\etl\function.h">
       <Filter>ETL\Utilities</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\etl\array.h">
@@ -623,9 +623,6 @@
     </ClInclude>
     <ClInclude Include="..\..\include\etl\multi_array.h">
       <Filter>ETL\Containers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\etl\delegate.h">
-      <Filter>ETL\Utilities</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\etl\delegate_service.h">
       <Filter>ETL\Frameworks</Filter>
@@ -1344,8 +1341,14 @@
     <ClInclude Include="..\..\include\etl\expected.h">
       <Filter>ETL\Containers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\etl\delegate.h">
+      <Filter>ETL\Callbacks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\etl\function.h">
+      <Filter>ETL\Callbacks</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\include\etl\member_function.h">
-      <Filter>ETL\Utilities</Filter>
+      <Filter>ETL\Callbacks</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

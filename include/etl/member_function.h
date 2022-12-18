@@ -90,6 +90,7 @@ namespace etl
   {
   public:
 
+    using this_type     = member_function<TReturn(TParameters...)>;
     using function_type = TReturn(*)(TParameters...);
 
     //*************************************************************************
@@ -112,13 +113,23 @@ namespace etl
     }
 
     //*************************************************************************
-    /// Create from lambda or functor.
+    /// Create from a const lambda or functor.
     //*************************************************************************
-    template <typename TLambda, typename = etl::enable_if_t<etl::is_class<TLambda>::value, void>>
-    ETL_CONSTEXPR14 explicit member_function(const TLambda& instance_)
+    template <typename TLambda, typename = etl::enable_if_t<etl::is_class<TLambda>::value && !etl::is_same<this_type, TLambda>::value, void>>
+    ETL_CONSTEXPR14 explicit member_function(TLambda& instance_)
     {
       invocation.alternate.object = (void*)(&instance_);
       invocation.stub             = lambda_stub<TLambda>;
+    }
+
+    //*************************************************************************
+    /// Create from a const lambda or functor.
+    //*************************************************************************
+    template <typename TLambda, typename = etl::enable_if_t<etl::is_class<TLambda>::value && !etl::is_same<this_type, TLambda>::value, void>>
+    ETL_CONSTEXPR14 explicit member_function(const TLambda& instance_)
+    {
+      invocation.alternate.object = (void*)(&instance_);
+      invocation.stub             = const_lambda_stub<TLambda>;
     }
 
     //*************************************************************************
@@ -302,6 +313,16 @@ namespace etl
     }
 
     //*************************************************************************
+    /// Stub call for a lambda or functor.
+    //*************************************************************************
+    template <typename TLambda>
+    static ETL_CONSTEXPR14 TReturn const_lambda_stub(const invocation_element& invocation, TParameters... params)
+    {
+      const TLambda* p = static_cast<const TLambda*>(invocation.alternate.object);
+      return (p->operator())(etl::forward<TParameters>(params)...);
+    }
+
+    //*************************************************************************
     /// The invocation object.
     //*************************************************************************
     invocation_element invocation;
@@ -338,16 +359,6 @@ namespace etl
     {
       invocation.alternate_method.method = method_;
       invocation.alternate_stub.stub     = method_stub;
-    }
-
-    //*************************************************************************
-    /// Construct from const method
-    //*************************************************************************
-    ETL_CONSTEXPR14 
-    explicit member_function(const_method_type const_method_)
-    {
-      invocation.alternate_method.const_method = const_method_;
-      invocation.alternate_stub.const_stub     = const_method_stub;
     }
 
     //*************************************************************************
@@ -399,7 +410,7 @@ namespace etl
     {
       if (is_valid())
       {
-        operator()(etl::forward<TParameters>(params)...);
+        operator()(object, etl::forward<TParameters>(params)...);
         return true;
       }
       else
@@ -429,6 +440,23 @@ namespace etl
     /// 
     //*************************************************************************
     template <typename TAlternative, typename TRet = TReturn>
+    etl::enable_if_t<is_void<TRet>::value, TRet>
+      call_or(TAlternative alternative, TObject& object, TParameters... params) const
+    {
+      if (is_valid())
+      {
+        operator()(object, etl::forward<TParameters>(params)...);
+      }
+      else
+      {
+        alternative(etl::forward<TParameters>(params)...);
+      }
+    }
+
+    //*************************************************************************
+    /// 
+    //*************************************************************************
+    template <typename TAlternative, typename TRet = TReturn>
     etl::enable_if_t<!is_void<TRet>::value, TRet>
       call_or(TAlternative alternative, TObject& object, TParameters... params) const
     {
@@ -438,7 +466,7 @@ namespace etl
       }
       else
       {
-        return alternative(param);
+        return alternative(etl::forward<TParameters>(params)...);
       }
     }
 
@@ -447,19 +475,9 @@ namespace etl
     //*************************************************************************
     TReturn operator()(TObject& object, TParameters... params) const
     {
-      ETL_ASSERT_AND_RETURN_VALUE(is_valid(), ETL_ERROR(etl::member_function_uninitialised), TReturn());
+      ETL_ASSERT(is_valid(), ETL_ERROR(etl::member_function_uninitialised));
 
       return (*invocation.alternate_stub.stub)(object, invocation, etl::forward<TParameters>(params)...);
-    }
-
-    //*************************************************************************
-    /// Execute the function.
-    //*************************************************************************
-    TReturn operator()(const TObject& object, TParameters... params) const
-    {
-      ETL_ASSERT_AND_RETURN_VALUE(is_valid(), ETL_ERROR(etl::member_function_uninitialised), TReturn());
-
-      return (*invocation.alternate_stub.const_stub)(object, invocation, etl::forward<TParameters>(params)...);
     }
 
   private:
@@ -492,53 +510,6 @@ namespace etl
       ETL_CONSTEXPR14 bool operator !=(const invocation_element& rhs) const
       {
         return !(*this == rhs);
-      }
-
-      //*************************************************************************
-      ///
-      //*************************************************************************
-      template <typename TRet = TReturn>
-      etl::enable_if_t<is_void<TRet>::value, TRet>
-        call_if(TObject& object, TParameters... params) const
-      {
-        if (is_valid())
-        {
-          operator()(etl::forward<TParameters>(params)...);
-        }
-      }
-
-      //*************************************************************************
-      ///
-      //*************************************************************************
-      template <typename TRet = TReturn>
-      etl::enable_if_t<!is_void<TRet>::value, TRet>
-        call_if(TObject& object, TParameters... params) const
-      {
-        if (is_valid())
-        {
-          return operator()(object, etl::forward<TParameters>(params)...);
-        }
-        else
-        {
-          return TReturn();
-        }
-      }
-
-      //*************************************************************************
-      /// 
-      //*************************************************************************
-      template <typename TAlternative, typename TRet = TReturn>
-      etl::enable_if_t<!is_void<TRet>::value, TRet>
-        call_or(TAlternative alternative, TObject& object, TParameters... params) const
-      {
-        if (is_valid())
-        {
-          return operator()(object, etl::forward<TParameters>(params)...);
-        }
-        else
-        {
-          return alternative;
-        }
       }
 
       //*************************************************************************
@@ -622,7 +593,6 @@ namespace etl
   {
   public:
 
-    using method_type = TReturn(TObject::*)(TParameters...);
     using const_method_type = TReturn(TObject::*)(TParameters...) const;
 
     //*************************************************************************
@@ -649,7 +619,7 @@ namespace etl
     //*************************************************************************
     bool is_valid() const
     {
-      return (invocation.alternate_stub.stub != ETL_NULLPTR) && (invocation.alternate_stub.const_stub != ETL_NULLPTR);
+      return (invocation.alternate_stub.const_stub != ETL_NULLPTR);
     }
 
     //*************************************************************************
@@ -680,12 +650,17 @@ namespace etl
     ///
     //*************************************************************************
     template <typename TRet = TReturn>
-    etl::enable_if_t<is_void<TRet>::value, TRet>
-      call_if(TObject& object, TParameters... params) const
+    etl::enable_if_t<is_void<TRet>::value, bool>
+      call_if(const TObject& object, TParameters... params) const
     {
       if (is_valid())
       {
-        operator()(etl::forward<TParameters>(params)...);
+        operator()(object, etl::forward<TParameters>(params)...);
+        return true;
+      }
+      else
+      {
+        return false;
       }
     }
 
@@ -693,16 +668,33 @@ namespace etl
     ///
     //*************************************************************************
     template <typename TRet = TReturn>
-    etl::enable_if_t<!is_void<TRet>::value, TRet>
-      call_if(TObject& object, TParameters... params) const
+    etl::enable_if_t<!is_void<TRet>::value, etl::optional<TRet>>
+      call_if(const TObject& object, TParameters... params) const
+    {
+      etl::optional<TRet> result;
+
+      if (is_valid())
+      {
+        result = operator()(object, etl::forward<TParameters>(params)...);
+      }
+
+      return result;
+    }
+
+    //*************************************************************************
+    /// 
+    //*************************************************************************
+    template <typename TAlternative, typename TRet = TReturn>
+    etl::enable_if_t<is_void<TRet>::value, TRet>
+      call_or(TAlternative alternative, const TObject& object, TParameters... params) const
     {
       if (is_valid())
       {
-        return operator()(object, etl::forward<TParameters>(params)...);
+        operator()(object, etl::forward<TParameters>(params)...);
       }
       else
       {
-        return TReturn();
+        alternative(etl::forward<TParameters>(params)...);
       }
     }
 
@@ -711,7 +703,7 @@ namespace etl
     //*************************************************************************
     template <typename TAlternative, typename TRet = TReturn>
     etl::enable_if_t<!is_void<TRet>::value, TRet>
-      call_or(TAlternative alternative, TObject& object, TParameters... params) const
+      call_or(TAlternative alternative, const TObject& object, TParameters... params) const
     {
       if (is_valid())
       {
@@ -719,7 +711,7 @@ namespace etl
       }
       else
       {
-        return alternative;
+        return alternative(etl::forward<TParameters>(params)...);
       }
     }
 
@@ -728,6 +720,8 @@ namespace etl
     //*************************************************************************
     TReturn operator()(const TObject& object, TParameters... params) const
     {
+      ETL_ASSERT(is_valid(), ETL_ERROR(etl::member_function_uninitialised));
+
       return (*invocation.alternate_stub.const_stub)(object, invocation, etl::forward<TParameters>(params)...);
     }
 
@@ -735,7 +729,6 @@ namespace etl
 
     struct invocation_element;
 
-    using stub_type = TReturn(*)(TObject&, const invocation_element&, TParameters...);
     using const_stub_type = TReturn(*)(const TObject&, const invocation_element&, TParameters...);
 
     //*************************************************************************
@@ -768,12 +761,7 @@ namespace etl
       union alternate_method_t
       {
         alternate_method_t()
-          : method(ETL_NULLPTR)
-        {
-        }
-
-        alternate_method_t(method_type method_)
-          : method(method_)
+          : const_method(ETL_NULLPTR)
         {
         }
 
@@ -782,7 +770,6 @@ namespace etl
         {
         }
 
-        method_type       method;
         const_method_type const_method;
       } alternate_method;
 
@@ -792,21 +779,15 @@ namespace etl
       union alternate_stub_t
       {
         alternate_stub_t()
-          : stub(ETL_NULLPTR)
+          : const_stub(ETL_NULLPTR)
         {
         }
 
-        alternate_stub_t(method_type stub_)
-          : stub(stub_)
-        {
-        }
-
-        alternate_stub_t(const_method_type const_stub_)
+        alternate_stub_t(const_stub_type const_stub_)
           : const_stub(const_stub_)
         {
         }
 
-        stub_type       stub;
         const_stub_type const_stub;
       } alternate_stub;
     };
