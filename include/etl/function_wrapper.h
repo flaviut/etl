@@ -39,19 +39,19 @@ SOFTWARE.
 #include "error_handler.h"
 
 //*****************************************************************************
-///\defgroup member_function member_function
+///\defgroup function_wrapper function_wrapper
 /// A set of wrapper templates to allow a function to be stored and called based on its const/non-const definition.
 ///\ingroup utilities
 //*****************************************************************************
 
 #if !ETL_USING_CPP11
-  #error etl::member_function requires C++11 or above
+  #error etl::function_wrapper requires C++11 or above
 #endif
 
 namespace etl
 {
   //***************************************************************************
-  /// The base for member_function exceptions.
+  /// The base for function_wrapper exceptions.
   //***************************************************************************
   class member_function_exception : public exception
   {
@@ -71,69 +71,71 @@ namespace etl
   public:
 
     member_function_uninitialised(string_type file_name_, numeric_type line_number_)
-      : member_function_exception(ETL_ERROR_TEXT("member_function:uninitialised", ETL_MEMBER_FUNCTION_FILE_ID"A"), file_name_, line_number_)
+      : member_function_exception(ETL_ERROR_TEXT("function_wrapper:uninitialised", ETL_MEMBER_FUNCTION_FILE_ID"A"), file_name_, line_number_)
     {
     }
   };
 
   //***************************************************************************
-  /// 
+  /// Prototype
   //***************************************************************************
   template <typename T>
-  class member_function;
+  class function_wrapper;
 
   //***************************************************************************
   /// Template to wrap free functions, lambdas and functors.
   //***************************************************************************
   template <typename TReturn, typename... TParameters>
-  class member_function<TReturn(TParameters...)>
+  class function_wrapper<TReturn(TParameters...)>
   {
   public:
 
-    using this_type     = member_function<TReturn(TParameters...)>;
+    using this_type     = function_wrapper<TReturn(TParameters...)>;
     using function_type = TReturn(*)(TParameters...);
 
     //*************************************************************************
-    ///
+    /// Default constructor
     //*************************************************************************
-    ETL_CONSTEXPR14 member_function() = default;
+    ETL_CONSTEXPR14 function_wrapper() = default;
 
     //*************************************************************************
-    ///
+    /// Copy constructor
     //*************************************************************************
-    ETL_CONSTEXPR14 member_function(const member_function& other) = default;
+    ETL_CONSTEXPR14 function_wrapper(const function_wrapper& other) = default;
+
+    //*************************************************************************
+    /// Assignment
+    //*************************************************************************
+    ETL_CONSTEXPR14 function_wrapper& operator =(const function_wrapper& other) = default;
 
     //*************************************************************************
     /// Create from function.
     //*************************************************************************
-    ETL_CONSTEXPR14 explicit member_function(function_type function_)
+    ETL_CONSTEXPR14 function_wrapper(function_type function_)
+      : invocation(function_, function_stub)
     {
-      invocation.alternate.func = function_;
-      invocation.stub           = function_stub;
     }
 
     //*************************************************************************
     /// Create from a const lambda or functor.
     //*************************************************************************
     template <typename TLambda, typename = etl::enable_if_t<etl::is_class<TLambda>::value && !etl::is_same<this_type, TLambda>::value, void>>
-    ETL_CONSTEXPR14 explicit member_function(TLambda& instance_)
+    ETL_CONSTEXPR14 function_wrapper(TLambda& instance_)
+      : invocation((void*)(&instance_), lambda_stub<TLambda>)
     {
-      invocation.alternate.object = (void*)(&instance_);
-      invocation.stub             = lambda_stub<TLambda>;
     }
 
     //*************************************************************************
     /// Create from a const lambda or functor.
     //*************************************************************************
     template <typename TLambda, typename = etl::enable_if_t<etl::is_class<TLambda>::value && !etl::is_same<this_type, TLambda>::value, void>>
-    ETL_CONSTEXPR14 explicit member_function(const TLambda& instance_)
+    ETL_CONSTEXPR14 function_wrapper(const TLambda& instance_)
+      : invocation((void*)(&instance_), const_lambda_stub<TLambda>)
     {
-      invocation.alternate.object = (void*)(&instance_);
-      invocation.stub             = const_lambda_stub<TLambda>;
     }
 
     //*************************************************************************
-    ///
+    /// Returns true if initialised
     //*************************************************************************
     bool is_valid() const
     {
@@ -141,7 +143,7 @@ namespace etl
     }
 
     //*************************************************************************
-    ///
+    /// Returns true if initialised
     //*************************************************************************
     operator bool() const
     {
@@ -151,7 +153,7 @@ namespace etl
     //*************************************************************************
     /// Equality operator
     //*************************************************************************
-    ETL_CONSTEXPR14 bool operator ==(const member_function& rhs) const
+    ETL_CONSTEXPR14 bool operator ==(const function_wrapper& rhs) const
     {
       return invocation == rhs.invocation;
     }
@@ -159,21 +161,26 @@ namespace etl
     //*************************************************************************
     /// Inequality operator
     //*************************************************************************
-    ETL_CONSTEXPR14 bool operator !=(const member_function& rhs) const
+    ETL_CONSTEXPR14 bool operator !=(const function_wrapper& rhs) const
     {
       return invocation != rhs.invocation;
     }
 
     //*************************************************************************
-    ///
+    /// Call the wrapped function if initialsed
     //*************************************************************************
     template <typename TRet = TReturn>
-    etl::enable_if_t<is_void<TRet>::value, TRet>
+    etl::enable_if_t<is_void<TRet>::value, bool>
       call_if(TParameters... params) const
     {
       if (is_valid())
       {
         operator()(TParameters... params);
+        return true;
+      }
+      else
+      {
+        return false;
       }
     }
 
@@ -181,17 +188,17 @@ namespace etl
     ///
     //*************************************************************************
     template <typename TRet = TReturn>
-    etl::enable_if_t<!is_void<TRet>::value, TRet>
+    etl::enable_if_t<!is_void<TRet>::value, etl::optional<TRet>>
       call_if(TParameters... params) const
     {
+      etl::optional<TRet> result;
+
       if (is_valid())
       {
-        return operator()(TParameters... params);
+        result = operator()(TParameters... params);
       }
-      else
-      {
-        return TReturn();
-      }
+
+      return result;
     }
 
     //*************************************************************************
@@ -232,44 +239,59 @@ namespace etl
     {
       invocation_element() = default;
       invocation_element(const invocation_element&) = default;
+      invocation_element& operator=(const invocation_element&) = default;
 
-      //*************************************************************************
-      ///
-      //*************************************************************************
+      //*******************************
       ETL_CONSTEXPR14 invocation_element(void* object_, stub_type stub_)
         : alternate(object_)
         , stub(stub_)
       {
       }
 
-      //*************************************************************************
-      ///
-      //*************************************************************************
+      //*******************************
       ETL_CONSTEXPR14 invocation_element(function_type func_, stub_type stub_)
         : alternate(func_)
         , stub(stub_)
       {
       }
 
-      //*************************************************************************
-      ///
-      //*************************************************************************
+      //*******************************
       ETL_CONSTEXPR14 bool operator ==(const invocation_element& rhs) const
       {
-        return (rhs.object == object) &&  (rhs.stub == stub) && (rhs.func == func);
+        return (stub == rhs.stub) &&
+                 ((stub == ETL_NULLPTR) ||
+                  ((stub == function_stub) && (rhs.alternate.func == alternate.func)) ||
+                  (rhs.alternate.object == alternate.object));
+
+
+        //if (stub == rhs.stub)
+        //{
+        //  if (stub == ETL_NULLPTR)
+        //  {
+        //    return true;
+        //  }
+        //  else if (stub == function_stub)
+        //  {
+        //    return (rhs.alternate.func == alternate.func);
+        //  }
+        //  else
+        //  {
+        //    return (rhs.alternate.object == alternate.object);
+        //  }
+        //}
+        //else
+        //{
+        //  return false;
+        //}
       }
 
-      //*************************************************************************
-      ///
-      //*************************************************************************
+      //*******************************
       ETL_CONSTEXPR14 bool operator !=(const invocation_element& rhs) const
       {
         return !(*this == rhs);
       }
 
-      //*************************************************************************
-      ///
-      //*************************************************************************
+      //*******************************
       union alternate_method_t
       {
         alternate_method_t()
@@ -332,47 +354,50 @@ namespace etl
   /// Template to wrap member functions.
   //***************************************************************************
   template <typename TObject, typename TReturn, typename... TParameters>
-  class member_function<TReturn(TObject&, TParameters...)>
+  class function_wrapper<TReturn(TObject&, TParameters...)>
   {
   public:
 
-    using method_type       = TReturn(TObject::*)(TParameters...);
-    using const_method_type = TReturn(TObject::*)(TParameters...) const;
+    using method_type = TReturn(TObject::*)(TParameters...);
 
     //*************************************************************************
     /// Default constructor
     //*************************************************************************
     ETL_CONSTEXPR14 
-    member_function() = default;
+    function_wrapper() = default;
 
     //*************************************************************************
     /// Copy constructor
     //*************************************************************************
     ETL_CONSTEXPR14 
-    member_function(const member_function& other) = default;
+    function_wrapper(const function_wrapper& other) = default;
+
+    //*************************************************************************
+    /// Assignment
+    //*************************************************************************
+    ETL_CONSTEXPR14 function_wrapper& operator =(const function_wrapper& other) = default;
 
     //*************************************************************************
     /// Construct from method
     //*************************************************************************
     ETL_CONSTEXPR14 
-    explicit member_function(method_type method_)
+    function_wrapper(method_type method_)
+      : invocation(method_, method_stub)
     {
-      invocation.alternate_method.method = method_;
-      invocation.alternate_stub.stub     = method_stub;
     }
 
     //*************************************************************************
-    /// Returns true if the member_function is initialised
+    /// Returns true if the function_wrapper is initialised
     //*************************************************************************
     ETL_NODISCARD
     ETL_CONSTEXPR14
     bool is_valid() const
     {
-      return (invocation.alternate_stub.stub != ETL_NULLPTR) && (invocation.alternate_stub.const_stub != ETL_NULLPTR);
+      return (invocation.stub != ETL_NULLPTR);
     }
 
     //*************************************************************************
-    /// Returns true if the member_function is initialised
+    /// Returns true if the function_wrapper is initialised
     //*************************************************************************
     ETL_NODISCARD
     ETL_CONSTEXPR14
@@ -386,7 +411,7 @@ namespace etl
     //*************************************************************************
     ETL_NODISCARD
     ETL_CONSTEXPR14 
-    bool operator ==(const member_function& rhs) const
+    bool operator ==(const function_wrapper& rhs) const
     {
       return invocation == rhs.invocation;
     }
@@ -396,7 +421,7 @@ namespace etl
     //*************************************************************************
     ETL_NODISCARD
     ETL_CONSTEXPR14
-    bool operator !=(const member_function& rhs) const
+    bool operator !=(const function_wrapper& rhs) const
     {
       return invocation != rhs.invocation;
     }
@@ -477,106 +502,51 @@ namespace etl
     {
       ETL_ASSERT(is_valid(), ETL_ERROR(etl::member_function_uninitialised));
 
-      return (*invocation.alternate_stub.stub)(object, invocation, etl::forward<TParameters>(params)...);
+      return (*invocation.stub)(object, invocation.method, etl::forward<TParameters>(params)...);
     }
 
   private:
 
-    struct invocation_element;
-
-    using stub_type       = TReturn(*)(TObject&, const invocation_element&, TParameters...);
-    using const_stub_type = TReturn(*)(const TObject&, const invocation_element&, TParameters...);
+    using stub_type = TReturn(*)(TObject&, method_type, TParameters...);
 
     //*************************************************************************
     /// The internal invocation object.
     //*************************************************************************
     struct invocation_element
     {
-      invocation_element() = default;
-      invocation_element(const invocation_element&) = default;
-
-      //*************************************************************************
-      /// Equality operator
-      //*************************************************************************
-      ETL_CONSTEXPR14 bool operator ==(const invocation_element& rhs) const
+      ETL_CONSTEXPR14 invocation_element() = default;
+      ETL_CONSTEXPR14 invocation_element(const invocation_element&) = default;
+      ETL_CONSTEXPR14 invocation_element& operator =(const invocation_element&) = default;
+      
+      //*******************************
+      ETL_CONSTEXPR14 invocation_element(method_type method_, stub_type stub_)
+        : method(method_)
+        , stub(stub_)
       {
-        return ((rhs.alternate_stub.stub       == stub)       && (rhs.alternate_stub.method == method)) ||
-               ((rhs.alternate_stub.const_stub == const_stub) && (rhs.alternate_stub.const_method == const_method))
       }
 
-      //*************************************************************************
-      /// Inequality operator
-      //*************************************************************************
+      //*********************************
+      ETL_CONSTEXPR14 bool operator ==(const invocation_element& rhs) const
+      {
+        return (rhs.method == method) && (rhs.stub == stub);
+      }
+
+      //*********************************
       ETL_CONSTEXPR14 bool operator !=(const invocation_element& rhs) const
       {
         return !(*this == rhs);
       }
 
-      //*************************************************************************
-      /// Union of alternate methods
-      //*************************************************************************
-      union alternate_method_t
-      {
-        alternate_method_t()
-          : method(ETL_NULLPTR)
-        {
-        }
-
-        alternate_method_t(method_type method_)
-          : method(method_)
-        {
-        }
-
-        alternate_method_t(const_method_type const_method_)
-          : const_method(const_method_)
-        {
-        }
-
-        method_type       method;
-        const_method_type const_method;
-      } alternate_method;
-
-      //*************************************************************************
-      /// Union of alternate stubs
-      //*************************************************************************
-      union alternate_stub_t
-      {
-        alternate_stub_t()
-          : stub(ETL_NULLPTR)
-        {
-        }
-
-        alternate_stub_t(method_type stub_)
-          : stub(stub_)
-        {
-        }
-
-        alternate_stub_t(const_method_type const_stub_)
-          : const_stub(const_stub_)
-        {
-        }
-
-        stub_type       stub;
-        const_stub_type const_stub;
-      } alternate_stub;    
+      method_type method = ETL_NULLPTR;
+      stub_type   stub   = ETL_NULLPTR;
     };
 
     //*************************************************************************
     /// Stub call for a member function.
     //*************************************************************************
-    static ETL_CONSTEXPR14 TReturn method_stub(TObject& object, const invocation_element& invocation, TParameters... params)
+    static ETL_CONSTEXPR14 TReturn method_stub(TObject& object, method_type method, TParameters... params)
     {
-      method_type pf = invocation.alternate_method.method;
-      return (object.*pf)(etl::forward<TParameters>(params)...);
-    }
-
-    //*************************************************************************
-    /// Stub call for a const member function.
-    //*************************************************************************
-    static ETL_CONSTEXPR14 TReturn const_method_stub(const TObject& object, const invocation_element& invocation, TParameters... params)
-    {
-      const_method_type pf = invocation.alternate_method.const_method;
-      return (object.*pf)(etl::forward<TParameters>(params)...);
+      return (object.*method)(etl::forward<TParameters>(params)...);
     }
 
     //*************************************************************************
@@ -586,44 +556,48 @@ namespace etl
   };
 
   //***************************************************************************
-  /// Template to wrap member functions.
+  /// Template to wrap const member functions.
   //***************************************************************************
   template <typename TObject, typename TReturn, typename... TParameters>
-  class member_function<TReturn(const TObject&, TParameters...)>
+  class function_wrapper<TReturn(const TObject&, TParameters...)>
   {
   public:
 
     using const_method_type = TReturn(TObject::*)(TParameters...) const;
 
     //*************************************************************************
-    ///
+    /// Default constructor
     //*************************************************************************
-    ETL_CONSTEXPR14 member_function() = default;
+    ETL_CONSTEXPR14 function_wrapper() = default;
 
     //*************************************************************************
-    ///
+    /// Copy constructor
     //*************************************************************************
-    ETL_CONSTEXPR14 member_function(const member_function& other) = default;
+    ETL_CONSTEXPR14 function_wrapper(const function_wrapper& other) = default;
 
     //*************************************************************************
-    ///
+    /// Assignment
     //*************************************************************************
-    ETL_CONSTEXPR14 explicit member_function(const_method_type const_method_)
+    ETL_CONSTEXPR14 function_wrapper& operator =(const function_wrapper& other) = default;
+
+    //*************************************************************************
+    /// Construct from method
+    //*************************************************************************
+    ETL_CONSTEXPR14 function_wrapper(const_method_type const_method_)
+      : invocation(const_method_, const_method_stub)
     {
-      invocation.alternate_method.const_method = const_method_;
-      invocation.alternate_stub.const_stub     = const_method_stub;
     }
 
     //*************************************************************************
-    ///
+    /// Has this been initialised
     //*************************************************************************
     bool is_valid() const
     {
-      return (invocation.alternate_stub.const_stub != ETL_NULLPTR);
+      return (invocation.const_stub != ETL_NULLPTR);
     }
 
     //*************************************************************************
-    ///
+    /// Has this been initialised
     //*************************************************************************
     operator bool() const
     {
@@ -633,7 +607,7 @@ namespace etl
     //*************************************************************************
     /// Equality operator
     //*************************************************************************
-    ETL_CONSTEXPR14 bool operator ==(const member_function& rhs) const
+    ETL_CONSTEXPR14 bool operator ==(const function_wrapper& rhs) const
     {
       return invocation == rhs.invocation;
     }
@@ -641,7 +615,7 @@ namespace etl
     //*************************************************************************
     /// Inequality operator
     //*************************************************************************
-    ETL_CONSTEXPR14 bool operator !=(const member_function& rhs) const
+    ETL_CONSTEXPR14 bool operator !=(const function_wrapper& rhs) const
     {
       return invocation != rhs.invocation;
     }
@@ -722,83 +696,51 @@ namespace etl
     {
       ETL_ASSERT(is_valid(), ETL_ERROR(etl::member_function_uninitialised));
 
-      return (*invocation.alternate_stub.const_stub)(object, invocation, etl::forward<TParameters>(params)...);
+      return (*invocation.const_stub)(object, invocation.const_method, etl::forward<TParameters>(params)...);
     }
 
   private:
 
-    struct invocation_element;
-
-    using const_stub_type = TReturn(*)(const TObject&, const invocation_element&, TParameters...);
+    using const_stub_type = TReturn(*)(const TObject&, const_method_type, TParameters...);
 
     //*************************************************************************
     /// The internal invocation object.
     //*************************************************************************
     struct invocation_element
     {
-      invocation_element() = default;
-      invocation_element(const invocation_element&) = default;
-
-      //*************************************************************************
-      ///
-      //*************************************************************************
-      ETL_CONSTEXPR14 bool operator ==(const invocation_element& rhs) const
+      ETL_CONSTEXPR14 invocation_element() = default;
+      ETL_CONSTEXPR14 invocation_element(const invocation_element&) = default;
+      ETL_CONSTEXPR14 invocation_element& operator =(const invocation_element&) = default;
+      
+      //*******************************
+      ETL_CONSTEXPR14 invocation_element(const_method_type method_, const_stub_type stub_)
+        : const_method(method_)
+        , const_stub(stub_)
       {
-        return (rhs.stub == stub) && (rhs.method == method);
       }
 
-      //*************************************************************************
-      ///
-      //*************************************************************************
+      //*********************************
+      ETL_CONSTEXPR14 bool operator ==(const invocation_element& rhs) const
+      {
+        return (rhs.const_method == const_method) && (rhs.const_stub == const_stub);
+      }
+
+      //*********************************
       ETL_CONSTEXPR14 bool operator !=(const invocation_element& rhs) const
       {
         return !(*this == rhs);
       }
 
-      //*************************************************************************
-      ///
-      //*************************************************************************
-      union alternate_method_t
-      {
-        alternate_method_t()
-          : const_method(ETL_NULLPTR)
-        {
-        }
-
-        alternate_method_t(const_method_type const_method_)
-          : const_method(const_method_)
-        {
-        }
-
-        const_method_type const_method;
-      } alternate_method;
-
-      //*************************************************************************
-      ///
-      //*************************************************************************
-      union alternate_stub_t
-      {
-        alternate_stub_t()
-          : const_stub(ETL_NULLPTR)
-        {
-        }
-
-        alternate_stub_t(const_stub_type const_stub_)
-          : const_stub(const_stub_)
-        {
-        }
-
-        const_stub_type const_stub;
-      } alternate_stub;
+      const_method_type const_method = ETL_NULLPTR;
+      const_stub_type   const_stub   = ETL_NULLPTR;
     };
 
     //*************************************************************************
     /// Stub call for a const member function.
     //*************************************************************************
-    static ETL_CONSTEXPR14 TReturn const_method_stub(const TObject& object, const invocation_element& invocation, TParameters... params)
+    static ETL_CONSTEXPR14 TReturn const_method_stub(const TObject& object, const_method_type const_method, TParameters... params)
     {
-      const_method_type pf = invocation.alternate_method.const_method;
-      return (object.*pf)(etl::forward<TParameters>(params)...);
+      return (object.*const_method)(etl::forward<TParameters>(params)...);
     }
 
     //*************************************************************************

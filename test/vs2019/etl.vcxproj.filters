@@ -1347,7 +1347,7 @@
     <ClInclude Include="..\..\include\etl\function.h">
       <Filter>ETL\Callbacks</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\etl\member_function.h">
+    <ClInclude Include="..\..\include\etl\function_wrapper.h">
       <Filter>ETL\Callbacks</Filter>
     </ClInclude>
   </ItemGroup>
@@ -3398,7 +3398,7 @@
     <ClCompile Include="..\sanity-check\to_arithmetic.h.t.cpp">
       <Filter>Tests\Sanity Checks\Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\test_member_function.cpp">
+    <ClCompile Include="..\test_function_wrapper.cpp">
       <Filter>Tests\Callbacks &amp; Delegates</Filter>
     </ClCompile>
   </ItemGroup>

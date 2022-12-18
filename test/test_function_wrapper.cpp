@@ -28,7 +28,7 @@ SOFTWARE.
 
 #include "unit_test_framework.h"
 
-#include "etl/member_function.h"
+#include "etl/function_wrapper.h"
 
 #include <string>
 
@@ -41,23 +41,33 @@ namespace
   {
     Not_Called,
     Member_Return_Parameter_Called,
+    Member_Return_Parameter_Alternate_Called,
     Member_Return_Parameter_Const_Called,
     Member_Parameter_Called,
+    Member_Parameter_Alternate_Called,
     Member_Parameter_Const_Called,
     Member_Return_Called,
+    Member_Return_Alternate_Called,
     Member_Return_Const_Called,
     Member_Called,
+    Member_Alternate_Called,
     Member_Const_Called,
     Functor_Return_Parameter_Called,
+    Functor_Return_Parameter_Alternate_Called,
     Functor_Return_Parameter_Const_Called,
     Functor_Return_Called,
     Functor_Return_Const_Called,
     Lambda_Return_Parameter_Called,
+    Lambda_Return_Parameter_Alternate_Called,
     Lambda_Return_Called,
     Static_Return_Parameter_Called,
+    Static_Return_Parameter_Alternate_Called,
     Static_Parameter_Called,
+    Static_Parameter_Alternate_Called,
     Static_Return_Called,
-    Static_Called
+    Static_Return_Alternate_Called,
+    Static_Called,
+    Static_Alternate_Called
   };
 
   FunctionCalled function_called = FunctionCalled::Not_Called;
@@ -118,6 +128,14 @@ namespace
     }
 
     //***********************************
+    int MemberReturnParameterAlternate(int i_, Moveable&& m_)
+    {
+      function_called = FunctionCalled::Member_Return_Parameter_Alternate_Called;
+
+      return i_;
+    }
+
+    //***********************************
     int MemberReturnParameterConst(int i_, Moveable&& m_) const
     {
       function_called = FunctionCalled::Member_Return_Parameter_Const_Called;
@@ -138,6 +156,12 @@ namespace
     }
 
     //***********************************
+    void MemberParameterAlternate(int i_, Moveable&& m_)
+    {
+      function_called = FunctionCalled::Member_Parameter_Alternate_Called;
+    }
+
+    //***********************************
     void MemberParameterConst(int i_, Moveable&& m_) const
     {
       function_called = FunctionCalled::Member_Parameter_Const_Called;
@@ -155,6 +179,14 @@ namespace
     }
 
     //***********************************
+    int MemberReturnAlternate()
+    {
+      function_called = FunctionCalled::Member_Return_Alternate_Called;
+
+      return 1;
+    }
+
+    //***********************************
     int MemberReturnConst() const
     {
       function_called = FunctionCalled::Member_Return_Const_Called;
@@ -166,6 +198,12 @@ namespace
     void Member()
     {
       function_called = FunctionCalled::Member_Called;
+    }
+
+    //***********************************
+    void MemberAlternate()
+    {
+      function_called = FunctionCalled::Member_Alternate_Called;
     }
 
     //***********************************
@@ -182,6 +220,13 @@ namespace
   static int StaticReturnParameterFunction(int i_, Moveable&& m_)
   {
     function_called = FunctionCalled::Static_Return_Parameter_Called;
+    return i_;
+  }
+
+  //***************************************************************************
+  static int StaticReturnParameterFunctionAlternate(int i_, Moveable&& m_)
+  {
+    function_called = FunctionCalled::Static_Return_Parameter_Alternate_Called;
     return i_;
   }
 
@@ -268,7 +313,7 @@ namespace
     //*************************************************************************
     TEST(test_static_return_parameter)
     {
-      etl::member_function<int(int, Moveable&&)> func(StaticReturnParameterFunction);
+      etl::function_wrapper<int(int, Moveable&&)> func(StaticReturnParameterFunction);
       int result = func(1, Moveable("Static_Return_Parameter_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -279,7 +324,7 @@ namespace
     //*************************************************************************
     TEST(test_static_return)
     {
-      etl::member_function<int()> func(StaticReturnFunction);
+      etl::function_wrapper<int()> func(StaticReturnFunction);
       int result = func();
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -290,11 +335,55 @@ namespace
     //*************************************************************************
     TEST(test_static)
     {
-      etl::member_function<void()> func(StaticFunction);
+      etl::function_wrapper<void()> func(StaticFunction);
       func();
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Static_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_static_return_parameter_assignment)
+    {
+      etl::function_wrapper<int(int, Moveable&&)> func1 = StaticReturnParameterFunction;
+      etl::function_wrapper<int(int, Moveable&&)> func2 = StaticReturnParameterFunctionAlternate;
+
+      func2 = func1;
+
+      int result;
+
+      result = func1(1, Moveable("Static_Return_Parameter_Called"));
+      CHECK_TRUE(func1.is_valid());
+      CHECK_TRUE(func1);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Return_Parameter_Called);
+      CHECK_EQUAL(1, result);
+
+      result = func2(2, Moveable("Static_Return_Parameter_Called"));
+      CHECK_TRUE(func2.is_valid());
+      CHECK_TRUE(func2);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Return_Parameter_Called);
+      CHECK_EQUAL(2, result);
+    }
+
+    //*************************************************************************
+    TEST(test_static_return_parameter_equality)
+    {
+      etl::function_wrapper<int(int, Moveable&&)> func1;
+      etl::function_wrapper<int(int, Moveable&&)> func2;
+      etl::function_wrapper<int(int, Moveable&&)> func3(StaticReturnParameterFunction);
+      etl::function_wrapper<int(int, Moveable&&)> func4(StaticReturnParameterFunction);
+      etl::function_wrapper<int(int, Moveable&&)> func5(StaticReturnParameterFunctionAlternate);
+
+      CHECK_TRUE(func1 == func2);
+      CHECK_TRUE(func2 == func1);
+      CHECK_TRUE(func3 == func4);
+      CHECK_TRUE(func4 == func3);
+      CHECK_TRUE(func1 != func3);
+      CHECK_TRUE(func3 != func1);
+      CHECK_TRUE(func1 != func4);
+      CHECK_TRUE(func4 != func1);
+      CHECK_TRUE(func4 != func5);
+      CHECK_TRUE(func5 != func4);
     }
 
     //*************************************************************************
@@ -308,7 +397,7 @@ namespace
         return i_; 
       };
 
-      etl::member_function<int(int, Moveable&&)> func(lambda);
+      etl::function_wrapper<int(int, Moveable&&)> func(lambda);
       int result = func(1, Moveable("Lambda_Return_Parameter_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -325,12 +414,78 @@ namespace
         return 1;
       };
 
-      etl::member_function<int()> func(lambda);
+      etl::function_wrapper<int()> func(lambda);
       int result = func();
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Lambda_Return_Called);
       CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST(test_lambda_return_parameter_assignment)
+    {
+      auto lambda1 = [](int i_, Moveable&& m_)
+      {
+        function_called = FunctionCalled::Lambda_Return_Parameter_Called;
+        return i_;
+      };
+
+      auto lambda2 = [](int i_, Moveable&& m_)
+      {
+        function_called = FunctionCalled::Lambda_Return_Parameter_Alternate_Called;
+        return i_;
+      };
+
+      etl::function_wrapper<int(int, Moveable&&)> func1 = lambda1;
+      etl::function_wrapper<int(int, Moveable&&)> func2 = lambda2;
+
+      func2 = func1;
+
+      int result;
+
+      result = func1(1, Moveable("Lambda_Return_Parameter_Called"));
+      CHECK_TRUE(func1.is_valid());
+      CHECK_TRUE(func1);
+      CHECK_TRUE(function_called == FunctionCalled::Lambda_Return_Parameter_Called);
+      CHECK_EQUAL(1, result);
+
+      result = func2(2, Moveable("Lambda_Return_Parameter_Called"));
+      CHECK_TRUE(func2.is_valid());
+      CHECK_TRUE(func2);
+      CHECK_TRUE(function_called == FunctionCalled::Lambda_Return_Parameter_Called);
+      CHECK_EQUAL(2, result);
+    }
+
+    //*************************************************************************
+    TEST(test_lambda_return_parameter_equality)
+    {
+      auto lambda1 = [](int i_, Moveable&& m_)
+      {
+        return i_;
+      };
+
+      auto lambda2 = [](int i_, Moveable&& m_)
+      {
+        return i_;
+      };
+
+      etl::function_wrapper<int(int, Moveable&&)> func1;
+      etl::function_wrapper<int(int, Moveable&&)> func2;
+      etl::function_wrapper<int(int, Moveable&&)> func3(lambda1);
+      etl::function_wrapper<int(int, Moveable&&)> func4(lambda1);
+      etl::function_wrapper<int(int, Moveable&&)> func5(lambda2);
+
+      CHECK_TRUE(func1 == func2);
+      CHECK_TRUE(func2 == func1);
+      CHECK_TRUE(func3 == func4);
+      CHECK_TRUE(func4 == func3);
+      CHECK_TRUE(func1 != func3);
+      CHECK_TRUE(func3 != func1);
+      CHECK_TRUE(func1 != func4);
+      CHECK_TRUE(func4 != func1);
+      CHECK_TRUE(func4 != func5);
+      CHECK_TRUE(func5 != func4);
     }
 
     //*************************************************************************
@@ -340,7 +495,7 @@ namespace
     {
       Functor functor;
 
-      etl::member_function<int(int, Moveable&&)> func(functor);
+      etl::function_wrapper<int(int, Moveable&&)> func(functor);
       int result = func(1, Moveable("Functor_Return_Parameter_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -353,7 +508,7 @@ namespace
     {
       const Functor functor;
 
-      etl::member_function<int(int, Moveable&&)> func(functor);
+      etl::function_wrapper<int(int, Moveable&&)> func(functor);
       int result = func(1, Moveable("Functor_Return_Parameter_Const_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -366,7 +521,7 @@ namespace
     {
       Functor functor;
 
-      etl::member_function<int()> func(functor);
+      etl::function_wrapper<int()> func(functor);
       int result = func();
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -379,12 +534,62 @@ namespace
     {
       const Functor functor;
 
-      etl::member_function<int()> func(functor);
+      etl::function_wrapper<int()> func(functor);
       int result = func();
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Functor_Return_Const_Called);
       CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST(test_functor_return_parameter_assignment)
+    {
+      Functor functor1;
+      Functor functor2;
+
+      etl::function_wrapper<int(int, Moveable&&)> func1 = functor1;
+      etl::function_wrapper<int(int, Moveable&&)> func2 = functor2;
+
+      func2 = func1;
+
+      int result;
+
+      result = func1(1, Moveable("Functor_Return_Parameter_Called"));
+      CHECK_TRUE(func1.is_valid());
+      CHECK_TRUE(func1);
+      CHECK_TRUE(function_called == FunctionCalled::Functor_Return_Parameter_Called);
+      CHECK_EQUAL(1, result);
+
+      result = func2(2, Moveable("Functor_Return_Parameter_Called"));
+      CHECK_TRUE(func2.is_valid());
+      CHECK_TRUE(func2);
+      CHECK_TRUE(function_called == FunctionCalled::Functor_Return_Parameter_Called);
+      CHECK_EQUAL(2, result);
+    }
+
+    //*************************************************************************
+    TEST(test_functor_return_parameter_equality)
+    {
+      Functor functor1;
+      Functor functor2;
+
+      etl::function_wrapper<int(int, Moveable&&)> func1;
+      etl::function_wrapper<int(int, Moveable&&)> func2;
+      etl::function_wrapper<int(int, Moveable&&)> func3(functor1);
+      etl::function_wrapper<int(int, Moveable&&)> func4(functor1);
+      etl::function_wrapper<int(int, Moveable&&)> func5(functor2);
+
+      CHECK_TRUE(func1 == func2);
+      CHECK_TRUE(func2 == func1);
+      CHECK_TRUE(func3 == func4);
+      CHECK_TRUE(func4 == func3);
+      CHECK_TRUE(func1 != func3);
+      CHECK_TRUE(func3 != func1);
+      CHECK_TRUE(func1 != func4);
+      CHECK_TRUE(func4 != func1);
+      CHECK_TRUE(func4 != func5);
+      CHECK_TRUE(func5 != func4);
     }
 
     //*************************************************************************
@@ -395,7 +600,7 @@ namespace
       TestClass testClass;
       int result;
 
-      etl::member_function<int(TestClass&, int, Moveable&&)> func;
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       CHECK_THROW(result = func(testClass, 1, Moveable("Not_Called")), etl::member_function_uninitialised);
@@ -407,7 +612,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass&, int, Moveable&&)> func;
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       etl::optional<int> result = func.call_if(testClass, 1, Moveable("Not_Called"));
@@ -420,7 +625,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass&, int, Moveable&&)> func;
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       int result = func.call_or(StaticReturnParameterFunction, testClass, 1, Moveable("Static_Return_Parameter_Called"));
@@ -432,7 +637,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameter);
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameter);
       int result = func(testClass, 1, Moveable("Member_Return_Parameter_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -445,7 +650,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameter);
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameter);
       etl::optional<int> result = func.call_if(testClass, 1, Moveable("Member_Return_Parameter_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -459,7 +664,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameter);
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameter);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnParameterFunction, testClass, 1, Moveable("Member_Return_Parameter_Called"));
@@ -471,10 +676,35 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(const TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameterConst);
+      etl::function_wrapper<int(const TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameterConst);
       int result = func(testClass, 1, Moveable("Member_Return_Parameter_Const_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Const_Called);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST(test_member_return_parameter_const_assignment)
+    {
+      TestClass testClass;
+
+      etl::function_wrapper<int(const TestClass&, int, Moveable&&)> func1(&TestClass::MemberReturnParameterConst);
+      etl::function_wrapper<int(const TestClass&, int, Moveable&&)> func2;
+
+      func2 = func1;
+
+      int result;
+
+      result = func1(testClass, 1, Moveable("Member_Return_Parameter_Const_Called"));
+      CHECK_TRUE(func1.is_valid());
+      CHECK_TRUE(func1);
+      CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Const_Called);
+      CHECK_EQUAL(1, result);
+
+      result = func2(testClass, 1, Moveable("Member_Return_Parameter_Const_Called"));
+      CHECK_TRUE(func2.is_valid());
+      CHECK_TRUE(func2);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Const_Called);
       CHECK_EQUAL(1, result);
     }
@@ -484,7 +714,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(const TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameterConst);
+      etl::function_wrapper<int(const TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameterConst);
       etl::optional<int> result = func.call_if(testClass, 1, Moveable("Member_Return_Parameter_Const_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -498,7 +728,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(const TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameterConst);
+      etl::function_wrapper<int(const TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameterConst);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnParameterFunction, testClass, 1, Moveable("Member_Return_Parameter_Const_Called"));
@@ -511,7 +741,7 @@ namespace
       const TestClass testClass;
       int result;
 
-      etl::member_function<int(const TestClass&, int, Moveable&&)> func;
+      etl::function_wrapper<int(const TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       CHECK_THROW(result = func(testClass, 1, Moveable("Not_Called")), etl::member_function_uninitialised);
@@ -523,12 +753,60 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(const TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameterConst);
+      etl::function_wrapper<int(const TestClass&, int, Moveable&&)> func(&TestClass::MemberReturnParameterConst);
       int result = func(testClass, 1, Moveable("Member_Return_Parameter_Const_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Const_Called);
       CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST(test_member_return_parameter_assignment)
+    {
+      TestClass testClass;
+
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func1 = &TestClass::MemberReturnParameter;
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func2 = &TestClass::MemberReturnParameterAlternate;
+
+      func2 = func1;
+
+      int result;
+
+      result = func1(testClass, 1, Moveable("Member_Return_Parameter_Called"));
+      CHECK_TRUE(func1.is_valid());
+      CHECK_TRUE(func1);
+      CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Called);
+      CHECK_EQUAL(1, result);
+
+      result = func2(testClass, 2, Moveable("Member_Return_Parameter_Called"));
+      CHECK_TRUE(func2.is_valid());
+      CHECK_TRUE(func2);
+      CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Called);
+      CHECK_EQUAL(2, result);
+    }
+
+    //*************************************************************************
+    TEST(test_member_return_parameter_equality)
+    {
+      TestClass testClass;
+
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func1;
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func2;
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func3(&TestClass::MemberReturnParameter);
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func4(&TestClass::MemberReturnParameter);
+      etl::function_wrapper<int(TestClass&, int, Moveable&&)> func5(&TestClass::MemberReturnParameterAlternate);
+
+      CHECK_TRUE(func1 == func2);
+      CHECK_TRUE(func2 == func1);
+      CHECK_TRUE(func3 == func4);
+      CHECK_TRUE(func4 == func3);
+      CHECK_TRUE(func1 != func3);
+      CHECK_TRUE(func3 != func1);
+      CHECK_TRUE(func1 != func4);
+      CHECK_TRUE(func4 != func1);
+      CHECK_TRUE(func4 != func5);
+      CHECK_TRUE(func5 != func4);
     }
 
     //*************************************************************************
@@ -539,7 +817,7 @@ namespace
       TestClass testClass;
       int result;
 
-      etl::member_function<int(TestClass&)> func;
+      etl::function_wrapper<int(TestClass&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       CHECK_THROW(result = func(testClass), etl::member_function_uninitialised);
@@ -551,7 +829,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass&)> func;
+      etl::function_wrapper<int(TestClass&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       etl::optional<int> result = func.call_if(testClass);
@@ -564,7 +842,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass&)> func;
+      etl::function_wrapper<int(TestClass&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       int result = func.call_or(StaticReturnFunction, testClass);
@@ -576,7 +854,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass&)> func(&TestClass::MemberReturn);
+      etl::function_wrapper<int(TestClass&)> func(&TestClass::MemberReturn);
       int result = func(testClass);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -589,7 +867,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass&)> func(&TestClass::MemberReturn);
+      etl::function_wrapper<int(TestClass&)> func(&TestClass::MemberReturn);
       etl::optional<int> result = func.call_if(testClass);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -603,7 +881,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(TestClass&)> func(&TestClass::MemberReturn);
+      etl::function_wrapper<int(TestClass&)> func(&TestClass::MemberReturn);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnFunction, testClass);
@@ -615,7 +893,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(const TestClass&)> func(&TestClass::MemberReturnConst);
+      etl::function_wrapper<int(const TestClass&)> func(&TestClass::MemberReturnConst);
       int result = func(testClass);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -628,7 +906,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(const TestClass&)> func(&TestClass::MemberReturnConst);
+      etl::function_wrapper<int(const TestClass&)> func(&TestClass::MemberReturnConst);
       etl::optional<int> result = func.call_if(testClass);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -642,7 +920,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<int(const TestClass&)> func(&TestClass::MemberReturnConst);
+      etl::function_wrapper<int(const TestClass&)> func(&TestClass::MemberReturnConst);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnFunction, testClass);
@@ -654,7 +932,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(const TestClass&)> func;
+      etl::function_wrapper<int(const TestClass&)> func;
       CHECK_THROW(int result = func(testClass), etl::member_function_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
@@ -665,7 +943,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(const TestClass&)> func;
+      etl::function_wrapper<int(const TestClass&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       etl::optional<int> result = func.call_if(testClass);
@@ -678,7 +956,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(const TestClass&)> func;
+      etl::function_wrapper<int(const TestClass&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       int result = func.call_or(StaticReturnFunction, testClass);
@@ -690,7 +968,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(const TestClass&)> func(&TestClass::MemberReturnConst);
+      etl::function_wrapper<int(const TestClass&)> func(&TestClass::MemberReturnConst);
       int result = func(testClass);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -703,7 +981,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(const TestClass&)> func(&TestClass::MemberReturnConst);
+      etl::function_wrapper<int(const TestClass&)> func(&TestClass::MemberReturnConst);
       etl::optional<int> result = func.call_if(testClass);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -717,11 +995,59 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(const TestClass&)> func(&TestClass::MemberReturnConst);
+      etl::function_wrapper<int(const TestClass&)> func(&TestClass::MemberReturnConst);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Const_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_member_return_assignment)
+    {
+      TestClass testClass;
+
+      etl::function_wrapper<int(TestClass&)> func1 = &TestClass::MemberReturn;
+      etl::function_wrapper<int(TestClass&)> func2 = &TestClass::MemberReturnAlternate;
+
+      func2 = func1;
+
+      int result;
+
+      result = func1(testClass);
+      CHECK_TRUE(func1.is_valid());
+      CHECK_TRUE(func1);
+      CHECK_TRUE(function_called == FunctionCalled::Member_Return_Called);
+      CHECK_EQUAL(0, result);
+
+      result = func2(testClass);
+      CHECK_TRUE(func2.is_valid());
+      CHECK_TRUE(func2);
+      CHECK_TRUE(function_called == FunctionCalled::Member_Return_Called);
+      CHECK_EQUAL(0, result);
+    }
+
+    //*************************************************************************
+    TEST(test_member_return_equality)
+    {
+      TestClass testClass;
+
+      etl::function_wrapper<int(TestClass&)> func1;
+      etl::function_wrapper<int(TestClass&)> func2;
+      etl::function_wrapper<int(TestClass&)> func3(&TestClass::MemberReturn);
+      etl::function_wrapper<int(TestClass&)> func4(&TestClass::MemberReturn);
+      etl::function_wrapper<int(TestClass&)> func5(&TestClass::MemberReturnAlternate);
+
+      CHECK_TRUE(func1 == func2);
+      CHECK_TRUE(func2 == func1);
+      CHECK_TRUE(func3 == func4);
+      CHECK_TRUE(func4 == func3);
+      CHECK_TRUE(func1 != func3);
+      CHECK_TRUE(func3 != func1);
+      CHECK_TRUE(func1 != func4);
+      CHECK_TRUE(func4 != func1);
+      CHECK_TRUE(func4 != func5);
+      CHECK_TRUE(func5 != func4);
     }
 
     //*************************************************************************
@@ -731,7 +1057,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&, int, Moveable&&)> func;
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func;
       CHECK_THROW(func(testClass, 1, Moveable("Not_Called")), etl::member_function_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
@@ -743,7 +1069,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&, int, Moveable&&)> func;
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       func.call_if(testClass, 1, Moveable("Not_Called"));
@@ -755,7 +1081,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&, int, Moveable&&)> func;
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       func.call_or(StaticParameterFunction, testClass, 1, Moveable("Not_Called"));
@@ -767,7 +1093,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&, int, Moveable&&)> func(&TestClass::MemberParameter);
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func(&TestClass::MemberParameter);
       func(testClass, 1, Moveable("Member_Parameter_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -779,7 +1105,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&, int, Moveable&&)> func(&TestClass::MemberParameter);
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func(&TestClass::MemberParameter);
       func.call_if(testClass, 1, Moveable("Member_Parameter_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -791,7 +1117,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&, int, Moveable&&)> func(&TestClass::MemberParameter);
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func(&TestClass::MemberParameter);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       func.call_or(StaticParameterFunction, testClass, 1, Moveable("Member_Parameter_Called"));
@@ -803,7 +1129,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(const TestClass&, int, Moveable&&)> func(&TestClass::MemberParameterConst);
+      etl::function_wrapper<void(const TestClass&, int, Moveable&&)> func(&TestClass::MemberParameterConst);
       func(testClass, 1, Moveable("Member_Parameter_Const_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -815,7 +1141,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(const TestClass&, int, Moveable&&)> func;
+      etl::function_wrapper<void(const TestClass&, int, Moveable&&)> func;
       CHECK_THROW(func(testClass, 1, Moveable("Not_Called")), etl::member_function_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
@@ -827,7 +1153,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(const TestClass&, int, Moveable&&)> func;
+      etl::function_wrapper<int(const TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       etl::optional<int> result = func.call_if(testClass, 1, Moveable("Not_Called"));
@@ -840,7 +1166,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<int(const TestClass&, int, Moveable&&)> func;
+      etl::function_wrapper<int(const TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       int result = func.call_or(StaticReturnParameterFunction, testClass, 1, Moveable("Not_Called"));
@@ -852,7 +1178,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(const TestClass&, int, Moveable&&)> func(&TestClass::MemberParameterConst);
+      etl::function_wrapper<void(const TestClass&, int, Moveable&&)> func(&TestClass::MemberParameterConst);
       func(testClass, 1, Moveable("Test_Parameter_Const_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -864,7 +1190,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(const TestClass&, int, Moveable&&)> func(&TestClass::MemberParameterConst);
+      etl::function_wrapper<void(const TestClass&, int, Moveable&&)> func(&TestClass::MemberParameterConst);
       func.call_if(testClass, 1, Moveable("Member_Parameter_Const_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -876,11 +1202,55 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(const TestClass&, int, Moveable&&)> func(&TestClass::MemberParameterConst);
+      etl::function_wrapper<void(const TestClass&, int, Moveable&&)> func(&TestClass::MemberParameterConst);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       func.call_or(StaticParameterFunction, testClass, 1, Moveable("Member_Parameter_Const_Called"));
       CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Const_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_member_parameter_return_assignment)
+    {
+      TestClass testClass;
+
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func1 = &TestClass::MemberParameter;
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func2 = &TestClass::MemberParameterAlternate;
+
+      func2 = func1;
+
+      func1(testClass, 1, Moveable("Member_Return_Called"));
+      CHECK_TRUE(func1.is_valid());
+      CHECK_TRUE(func1);
+      CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Called);
+
+      func2(testClass, 2, Moveable("Member_Return_Called"));
+      CHECK_TRUE(func2.is_valid());
+      CHECK_TRUE(func2);
+      CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_member_parameter_equality)
+    {
+      TestClass testClass;
+
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func1;
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func2;
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func3(&TestClass::MemberParameter);
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func4(&TestClass::MemberParameter);
+      etl::function_wrapper<void(TestClass&, int, Moveable&&)> func5(&TestClass::MemberParameterAlternate);
+
+      CHECK_TRUE(func1 == func2);
+      CHECK_TRUE(func2 == func1);
+      CHECK_TRUE(func3 == func4);
+      CHECK_TRUE(func4 == func3);
+      CHECK_TRUE(func1 != func3);
+      CHECK_TRUE(func3 != func1);
+      CHECK_TRUE(func1 != func4);
+      CHECK_TRUE(func4 != func1);
+      CHECK_TRUE(func4 != func5);
+      CHECK_TRUE(func5 != func4);
     }
 
     //*************************************************************************
@@ -890,7 +1260,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&)> func;
+      etl::function_wrapper<void(TestClass&)> func;
       CHECK_THROW(func(testClass), etl::member_function_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
@@ -902,7 +1272,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&)> func;
+      etl::function_wrapper<void(TestClass&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       func.call_if(testClass);
@@ -914,7 +1284,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&)> func;
+      etl::function_wrapper<void(TestClass&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       func.call_or(StaticFunction, testClass);
@@ -926,7 +1296,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&)> func(&TestClass::Member);
+      etl::function_wrapper<void(TestClass&)> func(&TestClass::Member);
       func(testClass);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -938,7 +1308,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&)> func(&TestClass::Member);
+      etl::function_wrapper<void(TestClass&)> func(&TestClass::Member);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       func.call_if(testClass);
@@ -950,7 +1320,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(TestClass&)> func(&TestClass::Member);
+      etl::function_wrapper<void(TestClass&)> func(&TestClass::Member);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       func.call_or(StaticFunction, testClass);
@@ -962,7 +1332,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(const TestClass&)> func(&TestClass::MemberConst);
+      etl::function_wrapper<void(const TestClass&)> func(&TestClass::MemberConst);
       func(testClass);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -974,7 +1344,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(const TestClass&)> func(&TestClass::MemberConst);
+      etl::function_wrapper<void(const TestClass&)> func(&TestClass::MemberConst);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       func.call_if(testClass);
@@ -986,7 +1356,7 @@ namespace
     {
       TestClass testClass;
 
-      etl::member_function<void(const TestClass&)> func(&TestClass::MemberConst);
+      etl::function_wrapper<void(const TestClass&)> func(&TestClass::MemberConst);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       func.call_or(StaticFunction, testClass);
@@ -998,7 +1368,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(const TestClass&)> func;
+      etl::function_wrapper<void(const TestClass&)> func;
       CHECK_THROW(func(testClass), etl::member_function_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
@@ -1010,7 +1380,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(const TestClass&)> func;
+      etl::function_wrapper<void(const TestClass&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       func.call_if(testClass);
@@ -1022,7 +1392,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(const TestClass&)> func;
+      etl::function_wrapper<void(const TestClass&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       func.call_or(StaticFunction, testClass);
@@ -1034,7 +1404,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(const TestClass&)> func(&TestClass::MemberConst);
+      etl::function_wrapper<void(const TestClass&)> func(&TestClass::MemberConst);
       func(testClass);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
@@ -1046,7 +1416,7 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(const TestClass&)> func(&TestClass::MemberConst);
+      etl::function_wrapper<void(const TestClass&)> func(&TestClass::MemberConst);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       func.call_if(testClass);
@@ -1058,11 +1428,55 @@ namespace
     {
       const TestClass testClass;
 
-      etl::member_function<void(const TestClass&)> func(&TestClass::MemberConst);
+      etl::function_wrapper<void(const TestClass&)> func(&TestClass::MemberConst);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       func.call_or(StaticFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Const_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_member_assignment)
+    {
+      TestClass testClass;
+
+      etl::function_wrapper<void(TestClass&)> func1 = &TestClass::Member;
+      etl::function_wrapper<void(TestClass&)> func2 = &TestClass::MemberAlternate;
+
+      func2 = func1;
+
+      func1(testClass);
+      CHECK_TRUE(func1.is_valid());
+      CHECK_TRUE(func1);
+      CHECK_TRUE(function_called == FunctionCalled::Member_Called);
+
+      func2(testClass);
+      CHECK_TRUE(func2.is_valid());
+      CHECK_TRUE(func2);
+      CHECK_TRUE(function_called == FunctionCalled::Member_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_member_equality)
+    {
+      TestClass testClass;
+
+      etl::function_wrapper<void(TestClass&)> func1;
+      etl::function_wrapper<void(TestClass&)> func2;
+      etl::function_wrapper<void(TestClass&)> func3(&TestClass::Member);
+      etl::function_wrapper<void(TestClass&)> func4(&TestClass::Member);
+      etl::function_wrapper<void(TestClass&)> func5(&TestClass::MemberAlternate);
+
+      CHECK_TRUE(func1 == func2);
+      CHECK_TRUE(func2 == func1);
+      CHECK_TRUE(func3 == func4);
+      CHECK_TRUE(func4 == func3);
+      CHECK_TRUE(func1 != func3);
+      CHECK_TRUE(func3 != func1);
+      CHECK_TRUE(func1 != func4);
+      CHECK_TRUE(func4 != func1);
+      CHECK_TRUE(func4 != func5);
+      CHECK_TRUE(func5 != func4);
     }
   };
 }

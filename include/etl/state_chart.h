@@ -34,7 +34,7 @@ SOFTWARE.
 #include "array.h"
 #include "array_view.h"
 #include "utility.h"
-#include "member_function.h"
+#include "function_wrapper.h"
 
 #include <stdint.h>
 
@@ -104,8 +104,8 @@ namespace etl
       const event_id_t event_id;
       const state_id_t next_state_id;
 
-      etl::member_function<void(TObject&, TParameter)> action_s;
-      etl::member_function<bool(TObject&)> guard_s;
+      etl::function_wrapper<void(TObject&, TParameter)> action_s;
+      etl::function_wrapper<bool(TObject&)> guard_s;
 
       void (TObject::* const action)(TParameter);
       bool (TObject::* const guard)();
@@ -168,8 +168,8 @@ namespace etl
       const event_id_t event_id;
       const state_id_t next_state_id;
 
-      etl::member_function<void(TObject&)> action_s;
-      etl::member_function<bool(TObject&)> guard_s;
+      etl::function_wrapper<void(TObject&)> action_s;
+      etl::function_wrapper<bool(TObject&)> guard_s;
 
       void (TObject::* const action)();
       bool (TObject::* const guard)();
