@@ -114,7 +114,7 @@ namespace
       test_class test;
 
       // Create the function callback object.
-      etl::error_handler::function_wrapper<test_class> error_callback(test, &test_class::receive_error);
+      etl::error_handler::member_function<test_class> error_callback(test, &test_class::receive_error);
 
       // Tell the error handler about it.
       etl::error_handler::set_callback(error_callback);
