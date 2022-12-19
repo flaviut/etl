@@ -57,8 +57,9 @@ namespace etl
     //*************************************************************************
     /// Callback class for free handler functions. Deprecated.
     //*************************************************************************
-    struct free_function : public etl::function<void, const etl::exception&>
+    struct ETL_DEPRECATED free_function : public etl::function<void, const etl::exception&>
     {
+      ETL_DEPRECATED
       explicit free_function(void (*p_function_)(const etl::exception&))
         : etl::function<void, const etl::exception&>(p_function_)
       {
@@ -69,8 +70,9 @@ namespace etl
     /// Callback class for member handler functions. Deprecated.
     //*************************************************************************
     template <typename TObject>
-    struct member_function : public etl::function<TObject, const etl::exception&>
+    struct ETL_DEPRECATED member_function : public etl::function<TObject, const etl::exception&>
     {
+      ETL_DEPRECATED
       member_function(TObject& object_, void(TObject::*p_function_)(const etl::exception&))
         : etl::function<TObject, const etl::exception&>(object_, p_function_)
       {
@@ -81,6 +83,7 @@ namespace etl
     /// Sets the error callback function. Deprecated.
     ///\param f A reference to an etl::function object that will handler errors.
     //*****************************************************************************
+    ETL_DEPRECATED
     static void set_callback(ifunction<const etl::exception&>& f)
     {
       create((void*)(&f), ifunction_stub);
