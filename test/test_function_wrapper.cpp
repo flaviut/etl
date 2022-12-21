@@ -105,6 +105,61 @@ namespace
     bool was_moved;
   };
 
+  //***************************************************************************
+  static int StaticReturnParameterFunction(int i_, Moveable&& m_)
+  {
+    function_called = FunctionCalled::Static_Return_Parameter_Called;
+    return i_;
+  }
+
+  //***************************************************************************
+  static int StaticReturnParameterFunctionAlternate(int i_, Moveable&& m_)
+  {
+    function_called = FunctionCalled::Static_Return_Parameter_Alternate_Called;
+    return i_;
+  }
+
+  //***************************************************************************
+  static void StaticParameterFunction(int i_, Moveable&& m_)
+  {
+    function_called = FunctionCalled::Static_Parameter_Called;
+  }
+
+  //***************************************************************************
+  static int StaticReturnFunction()
+  {
+    function_called = FunctionCalled::Static_Return_Called;
+    return 1;
+  }
+
+  //***************************************************************************
+  static void StaticFunction()
+  {
+    function_called = FunctionCalled::Static_Called;
+  }
+
+  //***************************************************************************
+  static constexpr int StaticReturnParameterFunctionConstexpr(int i_)
+  {
+    return i_;
+  }
+
+  //***************************************************************************
+  static constexpr void StaticParameterFunctionConstexpr(int i_)
+  {
+  }
+
+  //***************************************************************************
+  static constexpr int StaticReturnFunctionConstexpr()
+  {
+    return 1;
+  }
+
+  //***************************************************************************
+  static constexpr void StaticFunctionConstexpr()
+  {
+  }
+
   //*****************************************************************************
   struct TestClass
   {
@@ -216,38 +271,83 @@ namespace
     mutable Moveable m;
   };
 
-  //***************************************************************************
-  static int StaticReturnParameterFunction(int i_, Moveable&& m_)
+  //*****************************************************************************
+  struct TestClassConstexpr
   {
-    function_called = FunctionCalled::Static_Return_Parameter_Called;
-    return i_;
-  }
+    //***********************************
+    constexpr TestClassConstexpr()
+      : i(0)
+    {
+    }
 
-  //***************************************************************************
-  static int StaticReturnParameterFunctionAlternate(int i_, Moveable&& m_)
-  {
-    function_called = FunctionCalled::Static_Return_Parameter_Alternate_Called;
-    return i_;
-  }
+    //***********************************
+    constexpr int MemberReturnParameter(int i_)
+    {
+      return i_;
+    }
 
-  //***************************************************************************
-  static void StaticParameterFunction(int i_, Moveable&& m_)
-  {
-    function_called = FunctionCalled::Static_Parameter_Called;
-  }
+    //***********************************
+    constexpr int MemberReturnParameterAlternate(int i_)
+    {
+      return i_;
+    }
 
-  //***************************************************************************
-  static int StaticReturnFunction()
-  {
-    function_called = FunctionCalled::Static_Return_Called;
-    return 1;
-  }
+    //***********************************
+    constexpr int MemberReturnParameterConst(int i_) const
+    {
+      return i_;
+    }
 
-  //***************************************************************************
-  static void StaticFunction()
-  {
-    function_called = FunctionCalled::Static_Called;
-  }
+    //***********************************
+    constexpr void MemberParameter(int i_)
+    {
+    }
+
+    //***********************************
+    constexpr void MemberParameterAlternate(int i_)
+    {
+    }
+
+    //***********************************
+    constexpr void MemberParameterConst(int i_) const
+    {
+    }
+
+    //***********************************
+    constexpr int MemberReturn()
+    {
+      return 0;
+    }
+
+    //***********************************
+    constexpr int MemberReturnAlternate()
+    {
+      return 1;
+    }
+
+    //***********************************
+    constexpr int MemberReturnConst() const
+    {
+      return 1;
+    }
+
+    //***********************************
+    constexpr void Member()
+    {
+    }
+
+    //***********************************
+    constexpr void MemberAlternate()
+    {
+    }
+
+    //***********************************
+    constexpr void MemberConst() const
+    {
+    }
+
+    mutable int i;
+  };
 
   //***************************************************************************
   struct Functor
@@ -303,7 +403,47 @@ namespace
     mutable Moveable m;
   };
 
-  Functor functor;
+  //***************************************************************************
+  struct FunctorConstexpr
+  {
+    //***********************************
+    constexpr FunctorConstexpr()
+      : i(0)
+    {
+    }
+
+    //***********************************
+    constexpr FunctorConstexpr(const Functor& other)
+      : i(other.i)
+    {
+    }
+
+    //***********************************
+    constexpr int operator()(int i_)
+    {
+      return i_;
+    }
+
+    //***********************************
+    constexpr int operator()(int i_) const
+    {
+      return i_;
+    }
+
+    //***********************************
+    constexpr int operator()()
+    {
+      return 0;
+    }
+
+    //***********************************
+    constexpr int operator()() const
+    {
+      return 1;
+    }
+
+    mutable int i;
+  };
 
   //***************************************************************************
   SUITE(test_member_function)
@@ -322,13 +462,51 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_static_return_parameter_constexpr)
+    {
+      constexpr etl::function_wrapper<int(int)> func(StaticReturnParameterFunctionConstexpr);
+      constexpr int result = func(1);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST(test_static_parameter)
+    {
+      etl::function_wrapper<void(int, Moveable&&)> func(StaticParameterFunction);
+      func(1, Moveable("Static_Parameter_Called"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Parameter_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_static_parameter_constexpr)
+    {
+      constexpr etl::function_wrapper<void(int)> func(StaticParameterFunctionConstexpr);
+      func(1);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+    }
+
+    //*************************************************************************
     TEST(test_static_return)
     {
       etl::function_wrapper<int()> func(StaticReturnFunction);
       int result = func();
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
-      CHECK_TRUE(function_called == FunctionCalled::Static_Return_Called);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST(test_static_return_constexpr)
+    {
+      constexpr etl::function_wrapper<int()> func(StaticReturnFunctionConstexpr);
+      constexpr int result = func();
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK_EQUAL(1, result);
     }
 
@@ -339,7 +517,15 @@ namespace
       func();
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
-      CHECK_TRUE(function_called == FunctionCalled::Static_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_static_constexpr)
+    {
+      constexpr etl::function_wrapper<void()> func(StaticFunctionConstexpr);
+      func();
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
     }
 
     //*************************************************************************
@@ -406,6 +592,24 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_lambda_return_parameter_constexpr)
+    {
+      static constexpr auto lambda = [](int i_)
+      {
+        return i_;
+      };
+
+      using LambdaType = decltype(lambda);
+
+      constexpr etl::function_wrapper<int(LambdaType&, int)> func(&LambdaType::operator());
+      constexpr int result = func(lambda, 1);
+
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
     TEST(test_lambda)
     {
       auto lambda = []()
@@ -419,6 +623,23 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Lambda_Return_Called);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST(test_lambda_constexpr)
+    {
+      static constexpr auto lambda = []()
+      {
+        return 1;
+      };
+
+      using LambdaType = decltype(lambda);
+
+      constexpr etl::function_wrapper<int(LambdaType&)> func(&LambdaType::operator());
+      constexpr int result = func(lambda);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK_EQUAL(1, result);
     }
 
@@ -504,6 +725,19 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_functor_return_parameter_constexpr)
+    {
+      constexpr FunctorConstexpr functor;
+
+      constexpr etl::function_wrapper<int(const FunctorConstexpr&, int)> func(&FunctorConstexpr::operator());
+      constexpr int result = func(functor, 1);
+
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
     TEST(test_functor_return_parameter_const)
     {
       const Functor functor;
@@ -527,6 +761,18 @@ namespace
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Functor_Return_Called);
       CHECK_EQUAL(0, result);
+    }
+
+    //*************************************************************************
+    TEST(test_functor_return_constexpr)
+    {
+      static constexpr FunctorConstexpr functor;
+
+      constexpr etl::function_wrapper<int()> func(functor);
+      /*constexpr*/ int result = func();
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
@@ -608,6 +854,18 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_member_return_parameter_default_construction_constexpr)
+    {
+      constexpr TestClassConstexpr testClass;
+      int result;
+
+      constexpr etl::function_wrapper<int(const TestClassConstexpr&, int)> func;
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_THROW(result = func(testClass, 1), etl::member_function_uninitialised);
+    }
+
+    //*************************************************************************
     TEST(test_member_return_parameter_default_construction_call_if)
     {
       TestClass testClass;
@@ -618,6 +876,18 @@ namespace
       etl::optional<int> result = func.call_if(testClass, 1, Moveable("Not_Called"));
       CHECK_FALSE(result.has_value());
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_member_return_parameter_default_construction_call_if_constexpr)
+    {
+      constexpr TestClassConstexpr testClass;
+
+      constexpr etl::function_wrapper<int(const TestClassConstexpr&, int)> func;
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      constexpr etl::optional<int> result = func.call_if(testClass, 1);
+      CHECK_FALSE(result.has_value());
     }
 
     //*************************************************************************
@@ -633,6 +903,17 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_member_return_parameter_default_construction_call_or_constexpr)
+    {
+      constexpr TestClassConstexpr testClass;
+
+      constexpr etl::function_wrapper<int(const TestClassConstexpr&, int)> func;
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      constexpr int result = func.call_or(StaticReturnParameterFunctionConstexpr, testClass, 1);
+    }
+
+    //*************************************************************************
     TEST(test_member_return_parameter)
     {
       TestClass testClass;
@@ -642,6 +923,18 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Called);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST(test_member_return_parameter_constexpr)
+    {
+      constexpr TestClassConstexpr testClass;
+
+      constexpr etl::function_wrapper<int(const TestClassConstexpr&, int)> func(&TestClassConstexpr::MemberReturnParameterConst);
+      constexpr int result = func(testClass, 1);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
       CHECK_EQUAL(1, result);
     }
 
@@ -660,6 +953,19 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_member_return_parameter_call_if_constexpr)
+    {
+      constexpr TestClassConstexpr testClass;
+
+      constexpr etl::function_wrapper<int(const TestClassConstexpr&, int)> func(&TestClassConstexpr::MemberReturnParameterConst);
+      constexpr etl::optional<int> result = func.call_if(testClass, 1);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_TRUE(result.has_value());
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
     TEST(test_member_return_parameter_call_or)
     {
       TestClass testClass;
@@ -669,6 +975,17 @@ namespace
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnParameterFunction, testClass, 1, Moveable("Member_Return_Parameter_Called"));
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_member_return_parameter_call_or_constexpr)
+    {
+      constexpr TestClassConstexpr testClass;
+
+      constexpr etl::function_wrapper<int(const TestClassConstexpr&, int)> func(&TestClassConstexpr::MemberReturnParameterConst);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      constexpr int result = func.call_or(StaticReturnParameterFunctionConstexpr, testClass, 1);
     }
 
     //*************************************************************************
@@ -863,6 +1180,18 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_member_return_constexpr)
+    {
+      constexpr TestClassConstexpr testClass;
+
+      constexpr etl::function_wrapper<int(const TestClassConstexpr&)> func(&TestClassConstexpr::MemberReturnConst);
+      constexpr int result = func(testClass);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
     TEST(test_member_return_call_if)
     {
       TestClass testClass;
@@ -877,6 +1206,19 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_member_return_call_if_constexpr)
+    {
+      constexpr TestClassConstexpr testClass;
+
+      constexpr etl::function_wrapper<int(const TestClassConstexpr&)> func(&TestClassConstexpr::MemberReturnConst);
+      constexpr etl::optional<int> result = func.call_if(testClass);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_TRUE(result.has_value());
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
     TEST(test_member_return_call_or)
     {
       TestClass testClass;
@@ -886,6 +1228,17 @@ namespace
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_member_return_call_or_constexpr)
+    {
+      constexpr TestClassConstexpr testClass;
+
+      constexpr etl::function_wrapper<int(const TestClassConstexpr&)> func(&TestClassConstexpr::MemberReturnConst);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      constexpr int result = func.call_or(StaticReturnFunctionConstexpr, testClass);
     }
 
     //*************************************************************************
@@ -1101,6 +1454,17 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_member_parameter_constexpr)
+    {
+      TestClassConstexpr testClass;
+
+      constexpr etl::function_wrapper<void(const TestClassConstexpr&, int)> func(&TestClassConstexpr::MemberParameterConst);
+      func(testClass, 1);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+    }
+
+    //*************************************************************************
     TEST(test_member_parameter_call_if)
     {
       TestClass testClass;
@@ -1113,6 +1477,17 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_member_parameter_call_if_constexpr)
+    {
+      TestClassConstexpr testClass;
+
+      etl::function_wrapper<void(const TestClassConstexpr&, int)> func(&TestClassConstexpr::MemberParameterConst);
+      func.call_if(testClass, 1);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+    }
+
+    //*************************************************************************
     TEST(test_member_parameter_call_or)
     {
       TestClass testClass;
@@ -1122,6 +1497,17 @@ namespace
       CHECK_TRUE(func);
       func.call_or(StaticParameterFunction, testClass, 1, Moveable("Member_Parameter_Called"));
       CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_member_parameter_call_or_constexpr)
+    {
+      TestClassConstexpr testClass;
+
+      etl::function_wrapper<void(const TestClassConstexpr&, int)> func(&TestClassConstexpr::MemberParameterConst);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      func.call_or(StaticParameterFunctionConstexpr, testClass, 1);
     }
 
     //*************************************************************************
@@ -1145,7 +1531,6 @@ namespace
       CHECK_THROW(func(testClass, 1, Moveable("Not_Called")), etl::member_function_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
-      CHECK_TRUE(function_called == FunctionCalled::Not_Called);
     }
 
     //*************************************************************************
@@ -1304,6 +1689,17 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_member_constexpr)
+    {
+      TestClassConstexpr testClass;
+
+      etl::function_wrapper<void(const TestClassConstexpr&)> func(&TestClassConstexpr::MemberConst);
+      func(testClass);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+    }
+
+    //*************************************************************************
     TEST(test_member_call_if)
     {
       TestClass testClass;
@@ -1316,6 +1712,17 @@ namespace
     }
 
     //*************************************************************************
+    TEST(test_member_call_if_constexpr)
+    {
+      TestClassConstexpr testClass;
+
+      etl::function_wrapper<void(const TestClassConstexpr&)> func(&TestClassConstexpr::MemberConst);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      func.call_if(testClass);
+    }
+
+    //*************************************************************************
     TEST(test_member_call_or)
     {
       TestClass testClass;
@@ -1325,6 +1732,17 @@ namespace
       CHECK_TRUE(func);
       func.call_or(StaticFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Called);
+    }
+
+    //*************************************************************************
+    TEST(test_member_call_or_constexpr)
+    {
+      TestClassConstexpr testClass;
+
+      etl::function_wrapper<void(const TestClassConstexpr&)> func(&TestClassConstexpr::MemberConst);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      func.call_or(StaticFunctionConstexpr, testClass);
     }
 
     //*************************************************************************

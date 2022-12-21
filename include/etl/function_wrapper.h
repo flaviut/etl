@@ -50,6 +50,25 @@ SOFTWARE.
 
 namespace etl
 {
+  template <typename Type>
+  class has_member
+  {
+    class yes { char m; };
+    class no { yes m[2]; };
+    struct BaseMixin
+    {
+      void operator()() {}
+    };
+    struct Base : public Type, public BaseMixin {};
+    template <typename T, T t>  class Helper {};
+    template <typename U>
+    static no deduce(U*, Helper<void (BaseMixin::*)(), &U::operator()>* = 0);
+    static yes deduce(...);
+  public:
+    static const bool value = sizeof(yes) == sizeof(deduce((Base*)(0)));
+  };
+
+
   //***************************************************************************
   /// The base for function_wrapper exceptions.
   //***************************************************************************
@@ -137,6 +156,8 @@ namespace etl
     //*************************************************************************
     /// Returns true if initialised
     //*************************************************************************
+    ETL_NODISCARD
+    ETL_CONSTEXPR14 
     bool is_valid() const
     {
       return (invocation.stub != ETL_NULLPTR);
@@ -145,6 +166,8 @@ namespace etl
     //*************************************************************************
     /// Returns true if initialised
     //*************************************************************************
+    ETL_NODISCARD
+    ETL_CONSTEXPR14
     operator bool() const
     {
       return is_valid();
@@ -153,6 +176,7 @@ namespace etl
     //*************************************************************************
     /// Equality operator
     //*************************************************************************
+    ETL_NODISCARD
     ETL_CONSTEXPR14 bool operator ==(const function_wrapper& rhs) const
     {
       return invocation == rhs.invocation;
@@ -161,6 +185,7 @@ namespace etl
     //*************************************************************************
     /// Inequality operator
     //*************************************************************************
+    ETL_NODISCARD
     ETL_CONSTEXPR14 bool operator !=(const function_wrapper& rhs) const
     {
       return invocation != rhs.invocation;
@@ -170,6 +195,7 @@ namespace etl
     /// Call the wrapped function if initialsed
     //*************************************************************************
     template <typename TRet = TReturn>
+    ETL_CONSTEXPR14
     etl::enable_if_t<is_void<TRet>::value, bool>
       call_if(TParameters... params) const
     {
@@ -188,6 +214,7 @@ namespace etl
     ///
     //*************************************************************************
     template <typename TRet = TReturn>
+    ETL_CONSTEXPR14 
     etl::enable_if_t<!is_void<TRet>::value, etl::optional<TRet>>
       call_if(TParameters... params) const
     {
@@ -205,6 +232,7 @@ namespace etl
     /// 
     //*************************************************************************
     template <typename TAlternative, typename TRet = TReturn>
+    ETL_CONSTEXPR14
     etl::enable_if_t<!is_void<TRet>::value, TRet>
       call_or(TAlternative alternative, TParameters... params) const
     {
@@ -221,7 +249,7 @@ namespace etl
     //*************************************************************************
     /// Execute the function.
     //*************************************************************************
-    TReturn operator()(TParameters... params) const
+    ETL_CONSTEXPR14 TReturn operator()(TParameters... params) const
     {
       return (*invocation.stub)(invocation, etl::forward<TParameters>(params)...);
     }
@@ -237,9 +265,9 @@ namespace etl
     //*************************************************************************
     struct invocation_element
     {
-      invocation_element() = default;
-      invocation_element(const invocation_element&) = default;
-      invocation_element& operator=(const invocation_element&) = default;
+      ETL_CONSTEXPR14 invocation_element() = default;
+      ETL_CONSTEXPR14 invocation_element(const invocation_element&) = default;
+      ETL_CONSTEXPR14 invocation_element& operator=(const invocation_element&) = default;
 
       //*******************************
       ETL_CONSTEXPR14 invocation_element(void* object_, stub_type stub_)
@@ -262,27 +290,6 @@ namespace etl
                  ((stub == ETL_NULLPTR) ||
                   ((stub == function_stub) && (rhs.alternate.func == alternate.func)) ||
                   (rhs.alternate.object == alternate.object));
-
-
-        //if (stub == rhs.stub)
-        //{
-        //  if (stub == ETL_NULLPTR)
-        //  {
-        //    return true;
-        //  }
-        //  else if (stub == function_stub)
-        //  {
-        //    return (rhs.alternate.func == alternate.func);
-        //  }
-        //  else
-        //  {
-        //    return (rhs.alternate.object == alternate.object);
-        //  }
-        //}
-        //else
-        //{
-        //  return false;
-        //}
       }
 
       //*******************************
@@ -294,17 +301,17 @@ namespace etl
       //*******************************
       union alternate_method_t
       {
-        alternate_method_t()
+        ETL_CONSTEXPR14 alternate_method_t()
           : object(ETL_NULLPTR)
         {
         }
 
-        alternate_method_t(void* object_)
+        ETL_CONSTEXPR14 alternate_method_t(void* object_)
           : object(object_)
         {
         }
 
-        alternate_method_t(function_type func_)
+        ETL_CONSTEXPR14 alternate_method_t(function_type func_)
           : func(func_)
         {
         }
@@ -363,7 +370,7 @@ namespace etl
     //*************************************************************************
     /// Default constructor
     //*************************************************************************
-    ETL_CONSTEXPR14 
+    ETL_CONSTEXPR14
     function_wrapper() = default;
 
     //*************************************************************************
@@ -430,6 +437,7 @@ namespace etl
     ///
     //*************************************************************************
     template <typename TRet = TReturn>
+    ETL_CONSTEXPR14
     etl::enable_if_t<is_void<TRet>::value, bool>
       call_if(TObject& object, TParameters... params) const
     {
@@ -448,6 +456,7 @@ namespace etl
     ///
     //*************************************************************************
     template <typename TRet = TReturn>
+    ETL_CONSTEXPR14
     etl::enable_if_t<!is_void<TRet>::value, etl::optional<TRet>>
       call_if(TObject& object, TParameters... params) const
     {
@@ -465,6 +474,7 @@ namespace etl
     /// 
     //*************************************************************************
     template <typename TAlternative, typename TRet = TReturn>
+    ETL_CONSTEXPR14
     etl::enable_if_t<is_void<TRet>::value, TRet>
       call_or(TAlternative alternative, TObject& object, TParameters... params) const
     {
@@ -482,6 +492,7 @@ namespace etl
     /// 
     //*************************************************************************
     template <typename TAlternative, typename TRet = TReturn>
+    ETL_CONSTEXPR14
     etl::enable_if_t<!is_void<TRet>::value, TRet>
       call_or(TAlternative alternative, TObject& object, TParameters... params) const
     {
@@ -498,6 +509,7 @@ namespace etl
     //*************************************************************************
     /// Execute the function.
     //*************************************************************************
+    ETL_CONSTEXPR14
     TReturn operator()(TObject& object, TParameters... params) const
     {
       ETL_ASSERT(is_valid(), ETL_ERROR(etl::member_function_uninitialised));
@@ -591,6 +603,8 @@ namespace etl
     //*************************************************************************
     /// Has this been initialised
     //*************************************************************************
+    ETL_NODISCARD
+    ETL_CONSTEXPR14
     bool is_valid() const
     {
       return (invocation.const_stub != ETL_NULLPTR);
@@ -599,6 +613,8 @@ namespace etl
     //*************************************************************************
     /// Has this been initialised
     //*************************************************************************
+    ETL_NODISCARD
+    ETL_CONSTEXPR14
     operator bool() const
     {
       return is_valid();
@@ -607,6 +623,7 @@ namespace etl
     //*************************************************************************
     /// Equality operator
     //*************************************************************************
+    ETL_NODISCARD
     ETL_CONSTEXPR14 bool operator ==(const function_wrapper& rhs) const
     {
       return invocation == rhs.invocation;
@@ -615,6 +632,7 @@ namespace etl
     //*************************************************************************
     /// Inequality operator
     //*************************************************************************
+    ETL_NODISCARD
     ETL_CONSTEXPR14 bool operator !=(const function_wrapper& rhs) const
     {
       return invocation != rhs.invocation;
@@ -624,6 +642,7 @@ namespace etl
     ///
     //*************************************************************************
     template <typename TRet = TReturn>
+    ETL_CONSTEXPR14
     etl::enable_if_t<is_void<TRet>::value, bool>
       call_if(const TObject& object, TParameters... params) const
     {
@@ -642,6 +661,7 @@ namespace etl
     ///
     //*************************************************************************
     template <typename TRet = TReturn>
+    ETL_CONSTEXPR14
     etl::enable_if_t<!is_void<TRet>::value, etl::optional<TRet>>
       call_if(const TObject& object, TParameters... params) const
     {
@@ -659,6 +679,7 @@ namespace etl
     /// 
     //*************************************************************************
     template <typename TAlternative, typename TRet = TReturn>
+    ETL_CONSTEXPR14
     etl::enable_if_t<is_void<TRet>::value, TRet>
       call_or(TAlternative alternative, const TObject& object, TParameters... params) const
     {
@@ -676,6 +697,7 @@ namespace etl
     /// 
     //*************************************************************************
     template <typename TAlternative, typename TRet = TReturn>
+    ETL_CONSTEXPR14
     etl::enable_if_t<!is_void<TRet>::value, TRet>
       call_or(TAlternative alternative, const TObject& object, TParameters... params) const
     {
@@ -692,6 +714,7 @@ namespace etl
     //*************************************************************************
     /// Execute the function.
     //*************************************************************************
+    ETL_CONSTEXPR14
     TReturn operator()(const TObject& object, TParameters... params) const
     {
       ETL_ASSERT(is_valid(), ETL_ERROR(etl::member_function_uninitialised));
