@@ -70,7 +70,8 @@ namespace
     Static_Alternate_Called
   };
 
-  FunctionCalled function_called = FunctionCalled::Not_Called;
+  FunctionCalled function_called;
+  std::string    text_called;
 
   //*****************************************************************************
   struct Moveable
@@ -109,6 +110,8 @@ namespace
   static int StaticReturnParameterFunction(int i_, Moveable&& m_)
   {
     function_called = FunctionCalled::Static_Return_Parameter_Called;
+    text_called     = m_.text;
+
     return i_;
   }
 
@@ -116,6 +119,8 @@ namespace
   static int StaticReturnParameterFunctionAlternate(int i_, Moveable&& m_)
   {
     function_called = FunctionCalled::Static_Return_Parameter_Alternate_Called;
+    text_called     = m_.text;
+
     return i_;
   }
 
@@ -123,12 +128,31 @@ namespace
   static void StaticParameterFunction(int i_, Moveable&& m_)
   {
     function_called = FunctionCalled::Static_Parameter_Called;
+    text_called     = m_.text; 
+  }
+
+  //***************************************************************************
+  static void StaticParameterFunctionAlternate(int i_, Moveable&& m_)
+  {
+    function_called = FunctionCalled::Static_Parameter_Alternate_Called;
+    text_called     = m_.text;
   }
 
   //***************************************************************************
   static int StaticReturnFunction()
   {
     function_called = FunctionCalled::Static_Return_Called;
+    text_called = "Static_Return_Called";
+
+    return 1;
+  }
+
+  //***************************************************************************
+  static int StaticReturnFunctionAlternate()
+  {
+    function_called = FunctionCalled::Static_Return_Alternate_Called;
+    text_called     = "Static_Return_Alternate_Called";
+
     return 1;
   }
 
@@ -136,6 +160,14 @@ namespace
   static void StaticFunction()
   {
     function_called = FunctionCalled::Static_Called;
+    text_called     = "Static_Called";
+  }
+
+  //***************************************************************************
+  static void StaticFunctionAlternate()
+  {
+    function_called = FunctionCalled::Static_Alternate_Called;
+    text_called     = "Static_Alternate_Called";
   }
 
   //***************************************************************************
@@ -166,18 +198,20 @@ namespace
     //***********************************
     TestClass()
       : i(0)
-      , m("Empty")
+      , m("Not_Called")
     {
       function_called = FunctionCalled::Not_Called;
+      text_called     = m.text;
     }
 
     //***********************************
     int MemberReturnParameter(int i_, Moveable&& m_)
-    {
-      function_called = FunctionCalled::Member_Return_Parameter_Called;
-      
+    {     
       i = i_;
       m = std::move(m_);
+
+      function_called = FunctionCalled::Member_Return_Parameter_Called;
+      text_called     = m.text;
 
       return i_;
     }
@@ -185,7 +219,11 @@ namespace
     //***********************************
     int MemberReturnParameterAlternate(int i_, Moveable&& m_)
     {
+      i = i_;
+      m = std::move(m_);
+
       function_called = FunctionCalled::Member_Return_Parameter_Alternate_Called;
+      text_called     = m.text;
 
       return i_;
     }
@@ -193,10 +231,11 @@ namespace
     //***********************************
     int MemberReturnParameterConst(int i_, Moveable&& m_) const
     {
-      function_called = FunctionCalled::Member_Return_Parameter_Const_Called;
-
       i = i_;
       m = std::move(m_);
+
+      function_called = FunctionCalled::Member_Return_Parameter_Const_Called;
+      text_called     = m.text;
 
       return i_;
     }
@@ -204,31 +243,38 @@ namespace
     //***********************************
     void MemberParameter(int i_, Moveable&& m_)
     {
-      function_called = FunctionCalled::Member_Parameter_Called;
-
       i = i_;
       m = std::move(m_);
+
+      function_called = FunctionCalled::Member_Parameter_Called;
+      text_called     = m.text;
     }
 
     //***********************************
     void MemberParameterAlternate(int i_, Moveable&& m_)
     {
+      i = i_;
+      m = std::move(m_);
+
       function_called = FunctionCalled::Member_Parameter_Alternate_Called;
+      text_called     = m.text;
     }
 
     //***********************************
     void MemberParameterConst(int i_, Moveable&& m_) const
     {
-      function_called = FunctionCalled::Member_Parameter_Const_Called;
-
       i = i_;
       m = std::move(m_);
+
+      function_called = FunctionCalled::Member_Parameter_Const_Called;
+      text_called     = m.text;
     }
 
     //***********************************
     int MemberReturn()
     {
       function_called = FunctionCalled::Member_Return_Called;
+      text_called     = "Member_Return_Called";
 
       return 0;
     }
@@ -237,6 +283,7 @@ namespace
     int MemberReturnAlternate()
     {
       function_called = FunctionCalled::Member_Return_Alternate_Called;
+      text_called = "Member_Return_Alternate_Called";
 
       return 1;
     }
@@ -245,6 +292,7 @@ namespace
     int MemberReturnConst() const
     {
       function_called = FunctionCalled::Member_Return_Const_Called;
+      text_called = "Member_Return_Const_Called";
 
       return 1;
     }
@@ -253,18 +301,21 @@ namespace
     void Member()
     {
       function_called = FunctionCalled::Member_Called;
+      text_called     = "Member_Called";
     }
 
     //***********************************
     void MemberAlternate()
     {
       function_called = FunctionCalled::Member_Alternate_Called;
+      text_called     = "Member_Alternate_Called";
     }
 
     //***********************************
     void MemberConst() const
     {
       function_called = FunctionCalled::Member_Const_Called;
+      text_called     = "Member_Const_Called";
     }
 
     mutable int i;
@@ -355,9 +406,8 @@ namespace
     //***********************************
     Functor()
       : i(0)
-      , m("Empty")
+      , m("Not_Called")
     {
-      function_called = FunctionCalled::Not_Called;
     }
 
     //***********************************
@@ -371,6 +421,7 @@ namespace
     int operator()(int i_, Moveable&& m_)
     {
       function_called = FunctionCalled::Functor_Return_Parameter_Called;
+      text_called     = "Functor_Return_Parameter_Called";
 
       return i_;
     }
@@ -379,6 +430,7 @@ namespace
     int operator()(int i_, Moveable&& m_) const
     {
       function_called = FunctionCalled::Functor_Return_Parameter_Const_Called;
+      text_called     = "Functor_Return_Parameter_Const_Called";
 
       return i_;
     }
@@ -387,6 +439,7 @@ namespace
     int operator()()
     {
       function_called = FunctionCalled::Functor_Return_Called;
+      text_called     = "Functor_Return_Called";
 
       return 0;
     }
@@ -395,6 +448,7 @@ namespace
     int operator()() const
     {
       function_called = FunctionCalled::Functor_Return_Const_Called;
+      text_called     = "Functor_Return_Const_Called";
 
       return 1;
     }
@@ -448,10 +502,57 @@ namespace
   //***************************************************************************
   SUITE(test_member_function)
   {
+    //*****************************************************************************
+    // Initialises the test results.
+    //*****************************************************************************
+    struct SetupFixture
+    {
+      SetupFixture()
+      {
+        function_called = FunctionCalled::Not_Called;
+        text_called     = "Not_Called";
+      }
+    };
+
     //*************************************************************************
-    // Test Static Functions
+    // Test Static Return Parameter Functions
     //*************************************************************************
-    TEST(test_static_return_parameter)
+    TEST_FIXTURE(SetupFixture, test_static_return_parameter_default_construction)
+    {
+      etl::function_wrapper<int(int, Moveable&&)> func;
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_THROW(int result = func(1, Moveable("Static_Return_Parameter_Called")), etl::function_wrapper_uninitialised);
+      CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_return_parameter_default_construction_call_if)
+    {
+      etl::function_wrapper<int(int, Moveable&&)> func;
+      etl::optional<int> result = func.call_if(1, Moveable("Static_Return_Parameter_Called"));
+      CHECK_FALSE(result);
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_return_parameter_default_construction_call_or)
+    {
+      etl::function_wrapper<int(int, Moveable&&)> func;
+      etl::optional<int> result = func.call_or(StaticReturnParameterFunctionAlternate, 1, Moveable("Static_Return_Parameter_Alternate_Called"));
+      CHECK_TRUE(result);
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Return_Parameter_Alternate_Called);
+      CHECK_EQUAL("Static_Return_Parameter_Alternate_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_return_parameter)
     {
       etl::function_wrapper<int(int, Moveable&&)> func(StaticReturnParameterFunction);
       int result = func(1, Moveable("Static_Return_Parameter_Called"));
@@ -459,10 +560,37 @@ namespace
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Static_Return_Parameter_Called);
       CHECK_EQUAL(1, result);
+      CHECK_EQUAL("Static_Return_Parameter_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_static_return_parameter_constexpr)
+    TEST_FIXTURE(SetupFixture, test_static_return_parameter_call_if)
+    {
+      etl::function_wrapper<int(int, Moveable&&)> func(StaticReturnParameterFunction);
+      etl::optional<int> result = func.call_if(1, Moveable("Static_Return_Parameter_Called"));
+      CHECK_TRUE(result);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Return_Parameter_Called);
+      CHECK_EQUAL("Static_Return_Parameter_Called", text_called);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_return_parameter_call_or)
+    {
+      etl::function_wrapper<int(int, Moveable&&)> func(StaticReturnParameterFunction);
+      etl::optional<int> result = func.call_or(StaticReturnParameterFunctionAlternate, 1, Moveable("Static_Return_Parameter_Called"));
+      CHECK_TRUE(result);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Return_Parameter_Called);
+      CHECK_EQUAL("Static_Return_Parameter_Called", text_called);
+      CHECK_EQUAL(1, result);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_return_parameter_constexpr)
     {
       constexpr etl::function_wrapper<int(int)> func(StaticReturnParameterFunctionConstexpr);
       constexpr int result = func(1);
@@ -472,17 +600,75 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_static_parameter)
+    // Test Static Parameter Functions
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_parameter_default_construction)
+    {
+      etl::function_wrapper<void(int, Moveable&&)> func;
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_THROW(func(1, Moveable("Static_Parameter_Called")), etl::function_wrapper_uninitialised);
+      CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_parameter_default_construction_call_if)
+    {
+      etl::function_wrapper<void(int, Moveable&&)> func;
+      func.call_if(1, Moveable("Static_Parameter_Called"));
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_parameter_default_construction_call_or)
+    {
+      etl::function_wrapper<void(int, Moveable&&)> func;
+      func.call_or(StaticParameterFunctionAlternate, 1, Moveable("Static_Parameter_Alternate_Called"));
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Parameter_Alternate_Called);
+      CHECK_EQUAL("Static_Parameter_Alternate_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_parameter)
     {
       etl::function_wrapper<void(int, Moveable&&)> func(StaticParameterFunction);
       func(1, Moveable("Static_Parameter_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Static_Parameter_Called);
+      CHECK_EQUAL("Static_Parameter_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_static_parameter_constexpr)
+    TEST_FIXTURE(SetupFixture, test_static_parameter_call_if)
+    {
+      etl::function_wrapper<void(int, Moveable&&)> func(StaticParameterFunction);
+      func.call_if(1, Moveable("Static_Parameter_Called"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Parameter_Called);
+      CHECK_EQUAL("Static_Parameter_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_parameter_call_or)
+    {
+      etl::function_wrapper<void(int, Moveable&&)> func(StaticParameterFunction);
+      func.call_or(StaticParameterFunctionAlternate, 1, Moveable("Static_Parameter_Called"));
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Parameter_Called);
+      CHECK_EQUAL("Static_Parameter_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_parameter_constexpr)
     {
       constexpr etl::function_wrapper<void(int)> func(StaticParameterFunctionConstexpr);
       func(1);
@@ -491,17 +677,78 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_static_return)
+    // Test Static Return Functions
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_return_default_construction)
+    {
+      etl::function_wrapper<int()> func;
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_THROW(int result = func(), etl::function_wrapper_uninitialised);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_return_default_construction_call_if)
+    {
+      etl::function_wrapper<int()> func;
+      etl::optional<int> result = func.call_if();
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_FALSE(result);
+      CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_return_default_construction_call_or)
+    {
+      etl::function_wrapper<int()> func;
+      etl::optional<int> result = func.call_or(StaticReturnFunctionAlternate);
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_TRUE(result);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Return_Alternate_Called);
+      CHECK_EQUAL("Static_Return_Alternate_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_return)
     {
       etl::function_wrapper<int()> func(StaticReturnFunction);
       int result = func();
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_EQUAL(1, result);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Return_Called);
+      CHECK_EQUAL("Static_Return_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_static_return_constexpr)
+    TEST_FIXTURE(SetupFixture, test_static_return_call_if)
+    {
+      etl::function_wrapper<int()> func(StaticReturnFunction);
+      int result = func.call_if();
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_EQUAL(1, result);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Return_Called);
+      CHECK_EQUAL("Static_Return_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_return_call_or)
+    {
+      etl::function_wrapper<int()> func(StaticReturnFunction);
+      int result = func.call_or(StaticReturnFunctionAlternate);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_EQUAL(1, result);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Return_Called);
+      CHECK_EQUAL("Static_Return_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_return_constexpr)
     {
       constexpr etl::function_wrapper<int()> func(StaticReturnFunctionConstexpr);
       constexpr int result = func();
@@ -511,16 +758,75 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_static)
+    // Test Static Functions
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_default_construction)
+    {
+      etl::function_wrapper<void()> func;
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_THROW(func(), etl::function_wrapper_uninitialised);
+      CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_default_construction_call_if)
+    {
+      etl::function_wrapper<void()> func;
+      func.call_if();
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_default_construction_call_or)
+    {
+      etl::function_wrapper<void()> func;
+      func.call_or(StaticFunctionAlternate);
+      CHECK_FALSE(func.is_valid());
+      CHECK_FALSE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Alternate_Called);
+      CHECK_EQUAL("Static_Alternate_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static)
     {
       etl::function_wrapper<void()> func(StaticFunction);
       func();
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Called);
+      CHECK_EQUAL("Static_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_static_constexpr)
+    TEST_FIXTURE(SetupFixture, test_static_call_if)
+    {
+      etl::function_wrapper<void()> func(StaticFunction);
+      func.call_if();
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Called);
+      CHECK_EQUAL("Static_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_call_or)
+    {
+      etl::function_wrapper<void()> func(StaticFunction);
+      func.call_or(StaticFunctionAlternate);
+      CHECK_TRUE(func.is_valid());
+      CHECK_TRUE(func);
+      CHECK_TRUE(function_called == FunctionCalled::Static_Called);
+      CHECK_EQUAL("Static_Called", text_called);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_static_constexpr)
     {
       constexpr etl::function_wrapper<void()> func(StaticFunctionConstexpr);
       func();
@@ -529,7 +835,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_static_return_parameter_assignment)
+    TEST_FIXTURE(SetupFixture, test_static_return_parameter_assignment)
     {
       etl::function_wrapper<int(int, Moveable&&)> func1 = StaticReturnParameterFunction;
       etl::function_wrapper<int(int, Moveable&&)> func2 = StaticReturnParameterFunctionAlternate;
@@ -542,17 +848,19 @@ namespace
       CHECK_TRUE(func1.is_valid());
       CHECK_TRUE(func1);
       CHECK_TRUE(function_called == FunctionCalled::Static_Return_Parameter_Called);
+      CHECK_EQUAL("Static_Return_Parameter_Called", text_called);
       CHECK_EQUAL(1, result);
 
       result = func2(2, Moveable("Static_Return_Parameter_Called"));
       CHECK_TRUE(func2.is_valid());
       CHECK_TRUE(func2);
       CHECK_TRUE(function_called == FunctionCalled::Static_Return_Parameter_Called);
+      CHECK_EQUAL("Static_Return_Parameter_Called", text_called);
       CHECK_EQUAL(2, result);
     }
 
     //*************************************************************************
-    TEST(test_static_return_parameter_equality)
+    TEST_FIXTURE(SetupFixture, test_static_return_parameter_equality)
     {
       etl::function_wrapper<int(int, Moveable&&)> func1;
       etl::function_wrapper<int(int, Moveable&&)> func2;
@@ -575,11 +883,12 @@ namespace
     //*************************************************************************
     // Test Lambda Functions
     //*************************************************************************
-    TEST(test_lambda_return_parameter)
+    TEST_FIXTURE(SetupFixture, test_lambda_return_parameter)
     {
       auto lambda = [](int i_, Moveable&& m_) 
       { 
         function_called = FunctionCalled::Lambda_Return_Parameter_Called;
+        text_called     = m_.text;
         return i_; 
       };
 
@@ -588,11 +897,12 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Lambda_Return_Parameter_Called);
+      CHECK_EQUAL("Lambda_Return_Parameter_Called", text_called);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_lambda_return_parameter_constexpr)
+    TEST_FIXTURE(SetupFixture, test_lambda_return_parameter_constexpr)
     {
       static constexpr auto lambda = [](int i_)
       {
@@ -610,11 +920,12 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_lambda)
+    TEST_FIXTURE(SetupFixture, test_lambda)
     {
       auto lambda = []()
       {
         function_called = FunctionCalled::Lambda_Return_Called;
+        text_called     = "Lambda_Return_Called";
         return 1;
       };
 
@@ -623,11 +934,12 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Lambda_Return_Called);
+      CHECK_EQUAL("Lambda_Return_Called", text_called);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_lambda_constexpr)
+    TEST_FIXTURE(SetupFixture, test_lambda_constexpr)
     {
       static constexpr auto lambda = []()
       {
@@ -644,17 +956,19 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_lambda_return_parameter_assignment)
+    TEST_FIXTURE(SetupFixture, test_lambda_return_parameter_assignment)
     {
       auto lambda1 = [](int i_, Moveable&& m_)
       {
         function_called = FunctionCalled::Lambda_Return_Parameter_Called;
+        text_called     = m_.text;
         return i_;
       };
 
       auto lambda2 = [](int i_, Moveable&& m_)
       {
         function_called = FunctionCalled::Lambda_Return_Parameter_Alternate_Called;
+        text_called     = m_.text;
         return i_;
       };
 
@@ -669,17 +983,19 @@ namespace
       CHECK_TRUE(func1.is_valid());
       CHECK_TRUE(func1);
       CHECK_TRUE(function_called == FunctionCalled::Lambda_Return_Parameter_Called);
+      CHECK_EQUAL("Lambda_Return_Parameter_Called", text_called);
       CHECK_EQUAL(1, result);
 
       result = func2(2, Moveable("Lambda_Return_Parameter_Called"));
       CHECK_TRUE(func2.is_valid());
       CHECK_TRUE(func2);
       CHECK_TRUE(function_called == FunctionCalled::Lambda_Return_Parameter_Called);
+      CHECK_EQUAL("Lambda_Return_Parameter_Called", text_called);
       CHECK_EQUAL(2, result);
     }
 
     //*************************************************************************
-    TEST(test_lambda_return_parameter_equality)
+    TEST_FIXTURE(SetupFixture, test_lambda_return_parameter_equality)
     {
       auto lambda1 = [](int i_, Moveable&& m_)
       {
@@ -712,7 +1028,7 @@ namespace
     //*************************************************************************
     // Test Functor Functions
     //*************************************************************************
-    TEST(test_functor_return_parameter)
+    TEST_FIXTURE(SetupFixture, test_functor_return_parameter)
     {
       Functor functor;
 
@@ -721,11 +1037,12 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Functor_Return_Parameter_Called);
+      CHECK_EQUAL("Functor_Return_Parameter_Called", text_called);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_functor_return_parameter_constexpr)
+    TEST_FIXTURE(SetupFixture, test_functor_return_parameter_constexpr)
     {
       constexpr FunctorConstexpr functor;
 
@@ -738,7 +1055,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_functor_return_parameter_const)
+    TEST_FIXTURE(SetupFixture, test_functor_return_parameter_const)
     {
       const Functor functor;
 
@@ -747,11 +1064,12 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Functor_Return_Parameter_Const_Called);
+      CHECK_EQUAL("Functor_Return_Parameter_Const_Called", text_called);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_functor_return)
+    TEST_FIXTURE(SetupFixture, test_functor_return)
     {
       Functor functor;
 
@@ -760,23 +1078,24 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Functor_Return_Called);
+      CHECK_EQUAL("Functor_Return_Called", text_called);
       CHECK_EQUAL(0, result);
     }
 
     //*************************************************************************
-    TEST(test_functor_return_constexpr)
+    TEST_FIXTURE(SetupFixture, test_functor_return_constexpr)
     {
       static constexpr FunctorConstexpr functor;
 
-      constexpr etl::function_wrapper<int()> func(functor);
-      /*constexpr*/ int result = func();
+      constexpr etl::function_wrapper<int(const FunctorConstexpr&)> func(&FunctorConstexpr::operator());
+      constexpr int result = func(functor);
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_functor_return_const)
+    TEST_FIXTURE(SetupFixture, test_functor_return_const)
     {
       const Functor functor;
 
@@ -785,11 +1104,12 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Functor_Return_Const_Called);
+      CHECK_EQUAL("Functor_Return_Const_Called", text_called);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_functor_return_parameter_assignment)
+    TEST_FIXTURE(SetupFixture, test_functor_return_parameter_assignment)
     {
       Functor functor1;
       Functor functor2;
@@ -805,17 +1125,19 @@ namespace
       CHECK_TRUE(func1.is_valid());
       CHECK_TRUE(func1);
       CHECK_TRUE(function_called == FunctionCalled::Functor_Return_Parameter_Called);
+      CHECK_EQUAL("Functor_Return_Parameter_Called", text_called);
       CHECK_EQUAL(1, result);
 
       result = func2(2, Moveable("Functor_Return_Parameter_Called"));
       CHECK_TRUE(func2.is_valid());
       CHECK_TRUE(func2);
       CHECK_TRUE(function_called == FunctionCalled::Functor_Return_Parameter_Called);
+      CHECK_EQUAL("Functor_Return_Parameter_Called", text_called);
       CHECK_EQUAL(2, result);
     }
 
     //*************************************************************************
-    TEST(test_functor_return_parameter_equality)
+    TEST_FIXTURE(SetupFixture, test_functor_return_parameter_equality)
     {
       Functor functor1;
       Functor functor2;
@@ -841,7 +1163,7 @@ namespace
     //*************************************************************************
     // Test Member Return Parameter Function
     //*************************************************************************
-    TEST(test_member_return_parameter_default_construction)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_default_construction)
     {
       TestClass testClass;
       int result;
@@ -849,12 +1171,13 @@ namespace
       etl::function_wrapper<int(TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
-      CHECK_THROW(result = func(testClass, 1, Moveable("Not_Called")), etl::member_function_uninitialised);
+      CHECK_THROW(result = func(testClass, 1, Moveable("Not_Called")), etl::function_wrapper_uninitialised);
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_default_construction_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_default_construction_constexpr)
     {
       constexpr TestClassConstexpr testClass;
       int result;
@@ -862,11 +1185,11 @@ namespace
       constexpr etl::function_wrapper<int(const TestClassConstexpr&, int)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
-      CHECK_THROW(result = func(testClass, 1), etl::member_function_uninitialised);
+      CHECK_THROW(result = func(testClass, 1), etl::function_wrapper_uninitialised);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_default_construction_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_default_construction_call_if)
     {
       TestClass testClass;
 
@@ -876,10 +1199,11 @@ namespace
       etl::optional<int> result = func.call_if(testClass, 1, Moveable("Not_Called"));
       CHECK_FALSE(result.has_value());
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_default_construction_call_if_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_default_construction_call_if_constexpr)
     {
       constexpr TestClassConstexpr testClass;
 
@@ -891,7 +1215,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_default_construction_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_default_construction_call_or)
     {
       TestClass testClass;
 
@@ -900,10 +1224,11 @@ namespace
       CHECK_FALSE(func);
       int result = func.call_or(StaticReturnParameterFunction, testClass, 1, Moveable("Static_Return_Parameter_Called"));
       CHECK_TRUE(function_called == FunctionCalled::Static_Return_Parameter_Called);
+      CHECK_EQUAL("Static_Return_Parameter_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_default_construction_call_or_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_default_construction_call_or_constexpr)
     {
       constexpr TestClassConstexpr testClass;
 
@@ -914,7 +1239,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter)
     {
       TestClass testClass;
 
@@ -923,11 +1248,12 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Called);
+      CHECK_EQUAL("Member_Return_Parameter_Called", text_called);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_constexpr)
     {
       constexpr TestClassConstexpr testClass;
 
@@ -939,7 +1265,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_call_if)
     {
       TestClass testClass;
 
@@ -948,12 +1274,13 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Called);
+      CHECK_EQUAL("Member_Return_Parameter_Called", text_called);
       CHECK_TRUE(result.has_value());
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_call_if_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_call_if_constexpr)
     {
       constexpr TestClassConstexpr testClass;
 
@@ -966,7 +1293,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_call_or)
     {
       TestClass testClass;
 
@@ -975,10 +1302,11 @@ namespace
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnParameterFunction, testClass, 1, Moveable("Member_Return_Parameter_Called"));
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Called);
+      CHECK_EQUAL("Member_Return_Parameter_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_call_or_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_call_or_constexpr)
     {
       constexpr TestClassConstexpr testClass;
 
@@ -989,7 +1317,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_const)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_const)
     {
       TestClass testClass;
 
@@ -998,11 +1326,12 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Const_Called);
+      CHECK_EQUAL("Member_Return_Parameter_Const_Called", text_called);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_const_assignment)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_const_assignment)
     {
       TestClass testClass;
 
@@ -1017,17 +1346,19 @@ namespace
       CHECK_TRUE(func1.is_valid());
       CHECK_TRUE(func1);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Const_Called);
+      CHECK_EQUAL("Member_Return_Parameter_Const_Called", text_called);
       CHECK_EQUAL(1, result);
 
       result = func2(testClass, 1, Moveable("Member_Return_Parameter_Const_Called"));
       CHECK_TRUE(func2.is_valid());
       CHECK_TRUE(func2);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Const_Called);
+      CHECK_EQUAL("Member_Return_Parameter_Const_Called", text_called);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_const_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_const_call_if)
     {
       TestClass testClass;
 
@@ -1036,12 +1367,13 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Const_Called);
+      CHECK_EQUAL("Member_Return_Parameter_Const_Called", text_called);
       CHECK_TRUE(result.has_value());
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_const_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_const_call_or)
     {
       TestClass testClass;
 
@@ -1050,10 +1382,11 @@ namespace
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnParameterFunction, testClass, 1, Moveable("Member_Return_Parameter_Const_Called"));
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Const_Called);
+      CHECK_EQUAL("Member_Return_Parameter_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_default_construction_const_object)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_default_construction_const_object)
     {
       const TestClass testClass;
       int result;
@@ -1061,12 +1394,13 @@ namespace
       etl::function_wrapper<int(const TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
-      CHECK_THROW(result = func(testClass, 1, Moveable("Not_Called")), etl::member_function_uninitialised);
+      CHECK_THROW(result = func(testClass, 1, Moveable("Not_Called")), etl::function_wrapper_uninitialised);
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_const_const_object)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_const_const_object)
     {
       const TestClass testClass;
 
@@ -1075,11 +1409,12 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Const_Called);
+      CHECK_EQUAL("Member_Return_Parameter_Const_Called", text_called);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_assignment)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_assignment)
     {
       TestClass testClass;
 
@@ -1094,17 +1429,19 @@ namespace
       CHECK_TRUE(func1.is_valid());
       CHECK_TRUE(func1);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Called);
+      CHECK_EQUAL("Member_Return_Parameter_Called", text_called);
       CHECK_EQUAL(1, result);
 
       result = func2(testClass, 2, Moveable("Member_Return_Parameter_Called"));
       CHECK_TRUE(func2.is_valid());
       CHECK_TRUE(func2);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Parameter_Called);
+      CHECK_EQUAL("Member_Return_Parameter_Called", text_called);
       CHECK_EQUAL(2, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_parameter_equality)
+    TEST_FIXTURE(SetupFixture, test_member_return_parameter_equality)
     {
       TestClass testClass;
 
@@ -1129,7 +1466,7 @@ namespace
     //*************************************************************************
     // Test Member Return Function
     //*************************************************************************
-    TEST(test_member_return_default_construction)
+    TEST_FIXTURE(SetupFixture, test_member_return_default_construction)
     {
       TestClass testClass;
       int result;
@@ -1137,12 +1474,13 @@ namespace
       etl::function_wrapper<int(TestClass&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
-      CHECK_THROW(result = func(testClass), etl::member_function_uninitialised);
+      CHECK_THROW(result = func(testClass), etl::function_wrapper_uninitialised);
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_default_construction_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_return_default_construction_call_if)
     {
       TestClass testClass;
 
@@ -1152,10 +1490,11 @@ namespace
       etl::optional<int> result = func.call_if(testClass);
       CHECK_FALSE(result.has_value());
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_default_construction_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_return_default_construction_call_or)
     {
       TestClass testClass;
 
@@ -1164,10 +1503,11 @@ namespace
       CHECK_FALSE(func);
       int result = func.call_or(StaticReturnFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Static_Return_Called);
+      CHECK_EQUAL("Static_Return_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_default_construction_call_or_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_return_default_construction_call_or_constexpr)
     {
       constexpr TestClassConstexpr testClass;
 
@@ -1178,7 +1518,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_return)
+    TEST_FIXTURE(SetupFixture, test_member_return)
     {
       TestClass testClass;
 
@@ -1187,11 +1527,12 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Called);
+      CHECK_EQUAL("Member_Return_Called", text_called);
       CHECK_EQUAL(0, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_return_constexpr)
     {
       constexpr TestClassConstexpr testClass;
 
@@ -1203,7 +1544,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_return_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_return_call_if)
     {
       TestClass testClass;
 
@@ -1212,12 +1553,13 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Called);
+      CHECK_EQUAL("Member_Return_Called", text_called);
       CHECK_TRUE(result.has_value());
       CHECK_EQUAL(0, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_call_if_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_return_call_if_constexpr)
     {
       constexpr TestClassConstexpr testClass;
 
@@ -1230,7 +1572,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_return_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_return_call_or)
     {
       TestClass testClass;
 
@@ -1239,10 +1581,11 @@ namespace
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Called);
+      CHECK_EQUAL("Member_Return_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_call_or_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_return_call_or_constexpr)
     {
       constexpr TestClassConstexpr testClass;
 
@@ -1253,7 +1596,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_return_const)
+    TEST_FIXTURE(SetupFixture, test_member_return_const)
     {
       TestClass testClass;
 
@@ -1262,11 +1605,12 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Const_Called);
+      CHECK_EQUAL("Member_Return_Const_Called", text_called);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_const_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_return_const_call_if)
     {
       TestClass testClass;
 
@@ -1275,12 +1619,13 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Const_Called);
+      CHECK_EQUAL("Member_Return_Const_Called", text_called);
       CHECK_TRUE(result.has_value());
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_const_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_return_const_call_or)
     {
       TestClass testClass;
 
@@ -1289,21 +1634,22 @@ namespace
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Const_Called);
+      CHECK_EQUAL("Member_Return_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_default_construction_const_object)
+    TEST_FIXTURE(SetupFixture, test_member_return_default_construction_const_object)
     {
       const TestClass testClass;
 
       etl::function_wrapper<int(const TestClass&)> func;
-      CHECK_THROW(int result = func(testClass), etl::member_function_uninitialised);
+      CHECK_THROW(int result = func(testClass), etl::function_wrapper_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
     }
 
     //*************************************************************************
-    TEST(test_member_return_default_construction_const_object_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_return_default_construction_const_object_call_if)
     {
       const TestClass testClass;
 
@@ -1313,10 +1659,11 @@ namespace
       etl::optional<int> result = func.call_if(testClass);
       CHECK_FALSE(result.has_value());
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_default_construction_const_object_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_return_default_construction_const_object_call_or)
     {
       const TestClass testClass;
 
@@ -1325,10 +1672,11 @@ namespace
       CHECK_FALSE(func);
       int result = func.call_or(StaticReturnFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Static_Return_Called);
+      CHECK_EQUAL("Static_Return_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_const_const_object)
+    TEST_FIXTURE(SetupFixture, test_member_return_const_const_object)
     {
       const TestClass testClass;
 
@@ -1337,11 +1685,12 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Const_Called);
+      CHECK_EQUAL("Member_Return_Const_Called", text_called);
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_const_const_object_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_return_const_const_object_call_if)
     {
       const TestClass testClass;
 
@@ -1350,12 +1699,13 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Const_Called);
+      CHECK_EQUAL("Member_Return_Const_Called", text_called);
       CHECK_TRUE(result.has_value());
       CHECK_EQUAL(1, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_const_const_object_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_return_const_const_object_call_or)
     {
       const TestClass testClass;
 
@@ -1364,10 +1714,11 @@ namespace
       CHECK_TRUE(func);
       int result = func.call_or(StaticReturnFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Const_Called);
+      CHECK_EQUAL("Member_Return_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_return_assignment)
+    TEST_FIXTURE(SetupFixture, test_member_return_assignment)
     {
       TestClass testClass;
 
@@ -1382,17 +1733,19 @@ namespace
       CHECK_TRUE(func1.is_valid());
       CHECK_TRUE(func1);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Called);
+      CHECK_EQUAL("Member_Return_Called", text_called);
       CHECK_EQUAL(0, result);
 
       result = func2(testClass);
       CHECK_TRUE(func2.is_valid());
       CHECK_TRUE(func2);
       CHECK_TRUE(function_called == FunctionCalled::Member_Return_Called);
+      CHECK_EQUAL("Member_Return_Called", text_called);
       CHECK_EQUAL(0, result);
     }
 
     //*************************************************************************
-    TEST(test_member_return_equality)
+    TEST_FIXTURE(SetupFixture, test_member_return_equality)
     {
       TestClass testClass;
 
@@ -1417,19 +1770,20 @@ namespace
     //*************************************************************************
     // Test Member Parameter Function
     //*************************************************************************
-    TEST(test_member_parameter_default_construction)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_default_construction)
     {
       TestClass testClass;
 
       etl::function_wrapper<void(TestClass&, int, Moveable&&)> func;
-      CHECK_THROW(func(testClass, 1, Moveable("Not_Called")), etl::member_function_uninitialised);
+      CHECK_THROW(func(testClass, 1, Moveable("Not_Called")), etl::function_wrapper_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_default_construction_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_default_construction_call_if)
     {
       TestClass testClass;
 
@@ -1438,22 +1792,24 @@ namespace
       CHECK_FALSE(func);
       func.call_if(testClass, 1, Moveable("Not_Called"));
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_default_construction_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_default_construction_call_or)
     {
       TestClass testClass;
 
       etl::function_wrapper<void(TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
-      func.call_or(StaticParameterFunction, testClass, 1, Moveable("Not_Called"));
+      func.call_or(StaticParameterFunction, testClass, 1, Moveable("Static_Parameter_Function_Called"));
       CHECK_TRUE(function_called == FunctionCalled::Static_Parameter_Called);
+      CHECK_EQUAL("Static_Parameter_Function_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_default_construction_call_or_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_default_construction_call_or_constexpr)
     {
       constexpr TestClassConstexpr testClass;
 
@@ -1464,7 +1820,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_parameter)
+    TEST_FIXTURE(SetupFixture, test_member_parameter)
     {
       TestClass testClass;
 
@@ -1473,10 +1829,11 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Called);
+      CHECK_EQUAL("Member_Parameter_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_constexpr)
     {
       TestClassConstexpr testClass;
 
@@ -1487,7 +1844,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_call_if)
     {
       TestClass testClass;
 
@@ -1496,10 +1853,11 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Called);
+      CHECK_EQUAL("Member_Parameter_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_call_if_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_call_if_constexpr)
     {
       TestClassConstexpr testClass;
 
@@ -1510,7 +1868,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_call_or)
     {
       TestClass testClass;
 
@@ -1519,10 +1877,11 @@ namespace
       CHECK_TRUE(func);
       func.call_or(StaticParameterFunction, testClass, 1, Moveable("Member_Parameter_Called"));
       CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Called);
+      CHECK_EQUAL("Member_Parameter_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_call_or_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_call_or_constexpr)
     {
       TestClassConstexpr testClass;
 
@@ -1533,7 +1892,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_const)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_const)
     {
       TestClass testClass;
 
@@ -1542,21 +1901,22 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Const_Called);
+      CHECK_EQUAL("Member_Parameter_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_default_construction_const_object)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_default_construction_const_object)
     {
       const TestClass testClass;
 
       etl::function_wrapper<void(const TestClass&, int, Moveable&&)> func;
-      CHECK_THROW(func(testClass, 1, Moveable("Not_Called")), etl::member_function_uninitialised);
+      CHECK_THROW(func(testClass, 1, Moveable("Not_Called")), etl::function_wrapper_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_default_construction_const_object_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_default_construction_const_object_call_if)
     {
       const TestClass testClass;
 
@@ -1566,34 +1926,37 @@ namespace
       etl::optional<int> result = func.call_if(testClass, 1, Moveable("Not_Called"));
       CHECK_FALSE(result.has_value());
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_default_construction_const_object_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_default_construction_const_object_call_or)
     {
       const TestClass testClass;
 
       etl::function_wrapper<int(const TestClass&, int, Moveable&&)> func;
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
-      int result = func.call_or(StaticReturnParameterFunction, testClass, 1, Moveable("Not_Called"));
+      int result = func.call_or(StaticReturnParameterFunction, testClass, 1, Moveable("Static_Return_Parameter_Called"));
       CHECK_TRUE(function_called == FunctionCalled::Static_Return_Parameter_Called);
+      CHECK_EQUAL("Static_Return_Parameter_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_const_const_object)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_const_const_object)
     {
       const TestClass testClass;
 
       etl::function_wrapper<void(const TestClass&, int, Moveable&&)> func(&TestClass::MemberParameterConst);
-      func(testClass, 1, Moveable("Test_Parameter_Const_Called"));
+      func(testClass, 1, Moveable("Member_Parameter_Const_Called"));
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Const_Called);
+      CHECK_EQUAL("Member_Parameter_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_const_const_object_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_const_const_object_call_if)
     {
       const TestClass testClass;
 
@@ -1602,10 +1965,11 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Const_Called);
+      CHECK_EQUAL("Member_Parameter_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_const_const_object_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_const_const_object_call_or)
     {
       const TestClass testClass;
 
@@ -1614,10 +1978,11 @@ namespace
       CHECK_TRUE(func);
       func.call_or(StaticParameterFunction, testClass, 1, Moveable("Member_Parameter_Const_Called"));
       CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Const_Called);
+      CHECK_EQUAL("Member_Parameter_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_return_assignment)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_return_assignment)
     {
       TestClass testClass;
 
@@ -1626,19 +1991,21 @@ namespace
 
       func2 = func1;
 
-      func1(testClass, 1, Moveable("Member_Return_Called"));
+      func1(testClass, 1, Moveable("Member_Parameter_Return_Called"));
       CHECK_TRUE(func1.is_valid());
       CHECK_TRUE(func1);
       CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Called);
+      CHECK_EQUAL("Member_Parameter_Return_Called", text_called);
 
-      func2(testClass, 2, Moveable("Member_Return_Called"));
+      func2(testClass, 2, Moveable("Member_Parameter_Return_Called"));
       CHECK_TRUE(func2.is_valid());
       CHECK_TRUE(func2);
       CHECK_TRUE(function_called == FunctionCalled::Member_Parameter_Called);
+      CHECK_EQUAL("Member_Parameter_Return_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_parameter_equality)
+    TEST_FIXTURE(SetupFixture, test_member_parameter_equality)
     {
       TestClass testClass;
 
@@ -1663,19 +2030,20 @@ namespace
     //*************************************************************************
     // Test Member Function
     //*************************************************************************
-    TEST(test_member_default_construction)
+    TEST_FIXTURE(SetupFixture, test_member_default_construction)
     {
       TestClass testClass;
 
       etl::function_wrapper<void(TestClass&)> func;
-      CHECK_THROW(func(testClass), etl::member_function_uninitialised);
+      CHECK_THROW(func(testClass), etl::function_wrapper_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_default_construction_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_default_construction_call_if)
     {
       TestClass testClass;
 
@@ -1684,10 +2052,11 @@ namespace
       CHECK_FALSE(func);
       func.call_if(testClass);
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_default_construction_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_default_construction_call_or)
     {
       TestClass testClass;
 
@@ -1696,10 +2065,11 @@ namespace
       CHECK_FALSE(func);
       func.call_or(StaticFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Static_Called);
+      CHECK_EQUAL("Static_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_default_construction_call_or_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_default_construction_call_or_constexpr)
     {
       constexpr TestClassConstexpr testClass;
 
@@ -1710,7 +2080,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member)
+    TEST_FIXTURE(SetupFixture, test_member)
     {
       TestClass testClass;
 
@@ -1719,10 +2089,11 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Called);
+      CHECK_EQUAL("Member_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_constexpr)
     {
       TestClassConstexpr testClass;
 
@@ -1733,7 +2104,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_call_if)
     {
       TestClass testClass;
 
@@ -1742,10 +2113,11 @@ namespace
       CHECK_TRUE(func);
       func.call_if(testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Called);
+      CHECK_EQUAL("Member_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_call_if_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_call_if_constexpr)
     {
       TestClassConstexpr testClass;
 
@@ -1756,7 +2128,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_call_or)
     {
       TestClass testClass;
 
@@ -1765,10 +2137,11 @@ namespace
       CHECK_TRUE(func);
       func.call_or(StaticFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Called);
+      CHECK_EQUAL("Member_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_call_or_constexpr)
+    TEST_FIXTURE(SetupFixture, test_member_call_or_constexpr)
     {
       TestClassConstexpr testClass;
 
@@ -1779,7 +2152,7 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_const)
+    TEST_FIXTURE(SetupFixture, test_member_const)
     {
       TestClass testClass;
 
@@ -1788,10 +2161,11 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Const_Called);
+      CHECK_EQUAL("Member_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_const_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_const_call_if)
     {
       TestClass testClass;
 
@@ -1800,10 +2174,11 @@ namespace
       CHECK_TRUE(func);
       func.call_if(testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Const_Called);
+      CHECK_EQUAL("Member_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_const_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_const_call_or)
     {
       TestClass testClass;
 
@@ -1812,22 +2187,24 @@ namespace
       CHECK_TRUE(func);
       func.call_or(StaticFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Const_Called);
+      CHECK_EQUAL("Member_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_default_construction_const_object)
+    TEST_FIXTURE(SetupFixture, test_member_default_construction_const_object)
     {
       const TestClass testClass;
 
       etl::function_wrapper<void(const TestClass&)> func;
-      CHECK_THROW(func(testClass), etl::member_function_uninitialised);
+      CHECK_THROW(func(testClass), etl::function_wrapper_uninitialised);
       CHECK_FALSE(func.is_valid());
       CHECK_FALSE(func);
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_default_construction_const_object_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_default_construction_const_object_call_if)
     {
       const TestClass testClass;
 
@@ -1836,10 +2213,11 @@ namespace
       CHECK_FALSE(func);
       func.call_if(testClass);
       CHECK_TRUE(function_called == FunctionCalled::Not_Called);
+      CHECK_EQUAL("Not_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_default_construction_const_object_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_default_construction_const_object_call_or)
     {
       const TestClass testClass;
 
@@ -1848,10 +2226,11 @@ namespace
       CHECK_FALSE(func);
       func.call_or(StaticFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Static_Called);
+      CHECK_EQUAL("Static_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_const_const_object)
+    TEST_FIXTURE(SetupFixture, test_member_const_const_object)
     {
       const TestClass testClass;
 
@@ -1860,10 +2239,11 @@ namespace
       CHECK_TRUE(func.is_valid());
       CHECK_TRUE(func);
       CHECK_TRUE(function_called == FunctionCalled::Member_Const_Called);
+      CHECK_EQUAL("Member_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_const_const_object_call_if)
+    TEST_FIXTURE(SetupFixture, test_member_const_const_object_call_if)
     {
       const TestClass testClass;
 
@@ -1872,10 +2252,11 @@ namespace
       CHECK_TRUE(func);
       func.call_if(testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Const_Called);
+      CHECK_EQUAL("Member_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_const_const_object_call_or)
+    TEST_FIXTURE(SetupFixture, test_member_const_const_object_call_or)
     {
       const TestClass testClass;
 
@@ -1884,10 +2265,11 @@ namespace
       CHECK_TRUE(func);
       func.call_or(StaticFunction, testClass);
       CHECK_TRUE(function_called == FunctionCalled::Member_Const_Called);
+      CHECK_EQUAL("Member_Const_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_assignment)
+    TEST_FIXTURE(SetupFixture, test_member_assignment)
     {
       TestClass testClass;
 
@@ -1900,15 +2282,17 @@ namespace
       CHECK_TRUE(func1.is_valid());
       CHECK_TRUE(func1);
       CHECK_TRUE(function_called == FunctionCalled::Member_Called);
+      CHECK_EQUAL(text_called, "Member_Called");
 
       func2(testClass);
       CHECK_TRUE(func2.is_valid());
       CHECK_TRUE(func2);
       CHECK_TRUE(function_called == FunctionCalled::Member_Called);
+      CHECK_EQUAL("Member_Called", text_called);
     }
 
     //*************************************************************************
-    TEST(test_member_equality)
+    TEST_FIXTURE(SetupFixture, test_member_equality)
     {
       TestClass testClass;
 
