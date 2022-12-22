@@ -192,7 +192,7 @@ namespace etl
     }
 
     //*************************************************************************
-    ///
+    /// Call the wrapped function if initialised
     //*************************************************************************
     template <typename TRet = TReturn>
     ETL_CONSTEXPR14 
@@ -210,30 +210,11 @@ namespace etl
     }
 
     //*************************************************************************
-    /// 
+    /// Call the wrapped function if initialised, or call the alternative 
     //*************************************************************************
-    template <typename TAlternative, typename TRet = TReturn>
+    template <typename TAlternative>
     ETL_CONSTEXPR14
-      etl::enable_if_t<is_void<TRet>::value, TRet>
-      call_or(TAlternative alternative, TParameters... params) const
-    {
-      if (is_valid())
-      {
-        operator()(etl::forward<TParameters>(params)...);
-      }
-      else
-      {
-        alternative(etl::forward<TParameters>(params)...);
-      }
-    }
-
-    //*************************************************************************
-    /// 
-    //*************************************************************************
-    template <typename TAlternative, typename TRet = TReturn>
-    ETL_CONSTEXPR14
-    etl::enable_if_t<!is_void<TRet>::value, TRet>
-      call_or(TAlternative alternative, TParameters... params) const
+    TReturn call_or(TAlternative alternative, TParameters... params) const
     {
       if (is_valid())
       {
@@ -435,7 +416,7 @@ namespace etl
     }
 
     //*************************************************************************
-    ///
+    /// Call the wrapped function if initialised
     //*************************************************************************
     template <typename TRet = TReturn>
     ETL_CONSTEXPR14
@@ -454,7 +435,7 @@ namespace etl
     }
 
     //*************************************************************************
-    ///
+    /// Call the wrapped function if initialised
     //*************************************************************************
     template <typename TRet = TReturn>
     ETL_CONSTEXPR14
@@ -472,30 +453,11 @@ namespace etl
     }
 
     //*************************************************************************
-    /// 
+    /// Call the wrapped function if initialised, or call the alternative
     //*************************************************************************
-    template <typename TAlternative, typename TRet = TReturn>
+    template <typename TAlternative>
     ETL_CONSTEXPR14
-    etl::enable_if_t<is_void<TRet>::value, TRet>
-      call_or(TAlternative alternative, TObject& object, TParameters... params) const
-    {
-      if (is_valid())
-      {
-        operator()(object, etl::forward<TParameters>(params)...);
-      }
-      else
-      {
-        alternative(etl::forward<TParameters>(params)...);
-      }
-    }
-
-    //*************************************************************************
-    /// 
-    //*************************************************************************
-    template <typename TAlternative, typename TRet = TReturn>
-    ETL_CONSTEXPR14
-    etl::enable_if_t<!is_void<TRet>::value, TRet>
-      call_or(TAlternative alternative, TObject& object, TParameters... params) const
+    TReturn call_or(TAlternative alternative, TObject& object, TParameters... params) const
     {
       if (is_valid())
       {
@@ -640,7 +602,7 @@ namespace etl
     }
 
     //*************************************************************************
-    ///
+    /// Call the wrapped function if initialised
     //*************************************************************************
     template <typename TRet = TReturn>
     ETL_CONSTEXPR14
@@ -659,7 +621,7 @@ namespace etl
     }
 
     //*************************************************************************
-    ///
+    /// Call the wrapped function if initialised
     //*************************************************************************
     template <typename TRet = TReturn>
     ETL_CONSTEXPR14
@@ -677,30 +639,11 @@ namespace etl
     }
 
     //*************************************************************************
-    /// 
+    /// Call the wrapped function if initialised, or call the alternative 
     //*************************************************************************
-    template <typename TAlternative, typename TRet = TReturn>
+    template <typename TAlternative>
     ETL_CONSTEXPR14
-    etl::enable_if_t<is_void<TRet>::value, TRet>
-      call_or(TAlternative alternative, const TObject& object, TParameters... params) const
-    {
-      if (is_valid())
-      {
-        operator()(object, etl::forward<TParameters>(params)...);
-      }
-      else
-      {
-        alternative(etl::forward<TParameters>(params)...);
-      }
-    }
-
-    //*************************************************************************
-    /// 
-    //*************************************************************************
-    template <typename TAlternative, typename TRet = TReturn>
-    ETL_CONSTEXPR14
-    etl::enable_if_t<!is_void<TRet>::value, TRet>
-      call_or(TAlternative alternative, const TObject& object, TParameters... params) const
+    TReturn call_or(TAlternative alternative, const TObject& object, TParameters... params) const
     {
       if (is_valid())
       {
