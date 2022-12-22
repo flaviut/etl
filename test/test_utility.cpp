@@ -416,7 +416,15 @@ namespace
     }
 
     //*************************************************************************
-    TEST(test_member_function_wrapper)
+    TEST(test_member_function_wrapper_runtime)
+    {
+      constexpr int(*pf)(TestClass&, int) = &etl::member_function_wrapper<int(int)>::function<TestClass, &TestClass::MemberFunction>;
+
+      CHECK_EQUAL(2, pf(test, 1));
+    }
+
+    //*************************************************************************
+    TEST(test_member_function_wrapper_compiler_time)
     {
       constexpr int(*pf)(int) = &etl::member_function_wrapper<int(int)>::function<TestClass, test, &TestClass::MemberFunction>;
 
