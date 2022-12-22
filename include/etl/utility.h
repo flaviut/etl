@@ -581,12 +581,14 @@ namespace etl
   {
   public:
 
+    //***********************************
     template <typename T, T& Instance, TReturn(T::* Method)(TParams...)>
     static constexpr TReturn function(TParams... params)
     {
       return (Instance.*Method)(etl::forward<TParams>(params)...);
     }
 
+    //***********************************
     template <typename T, TReturn(T::* Method)(TParams...)>
     static constexpr TReturn function(T& instance, TParams... params)
     {
@@ -608,6 +610,7 @@ namespace etl
   {
   public:
 
+    //***********************************
     template <typename TFunctor, TFunctor& Instance>
     static constexpr TReturn function(TParams... params)
     {
