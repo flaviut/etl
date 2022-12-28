@@ -347,7 +347,7 @@ namespace etl
   {
   public:
 
-    using method_type = TReturn(TObject::*)(TParameters...);
+    using function_type = TReturn(TObject::*)(TParameters...);
 
     //*************************************************************************
     /// Default constructor
@@ -370,7 +370,7 @@ namespace etl
     /// Construct from method
     //*************************************************************************
     ETL_CONSTEXPR14 
-    function_wrapper(method_type method_)
+    function_wrapper(function_type method_)
       : invocation(method_, method_stub)
     {
     }
@@ -482,7 +482,7 @@ namespace etl
 
   private:
 
-    using stub_type = TReturn(*)(TObject&, method_type, TParameters...);
+    using stub_type = TReturn(*)(TObject&, function_type, TParameters...);
 
     //*************************************************************************
     /// The internal invocation object.
@@ -494,7 +494,7 @@ namespace etl
       ETL_CONSTEXPR14 invocation_element& operator =(const invocation_element&) = default;
       
       //*******************************
-      ETL_CONSTEXPR14 invocation_element(method_type method_, stub_type stub_)
+      ETL_CONSTEXPR14 invocation_element(function_type method_, stub_type stub_)
         : method(method_)
         , stub(stub_)
       {
@@ -512,14 +512,14 @@ namespace etl
         return !(*this == rhs);
       }
 
-      method_type method = ETL_NULLPTR;
-      stub_type   stub   = ETL_NULLPTR;
+      function_type method = ETL_NULLPTR;
+      stub_type   stub     = ETL_NULLPTR;
     };
 
     //*************************************************************************
     /// Stub call for a member function.
     //*************************************************************************
-    static ETL_CONSTEXPR14 TReturn method_stub(TObject& object, method_type method, TParameters... params)
+    static ETL_CONSTEXPR14 TReturn method_stub(TObject& object, function_type method, TParameters... params)
     {
       return (object.*method)(etl::forward<TParameters>(params)...);
     }
@@ -538,7 +538,7 @@ namespace etl
   {
   public:
 
-    using const_method_type = TReturn(TObject::*)(TParameters...) const;
+    using function_type = TReturn(TObject::*)(TParameters...) const;
 
     //*************************************************************************
     /// Default constructor
@@ -558,8 +558,8 @@ namespace etl
     //*************************************************************************
     /// Construct from method
     //*************************************************************************
-    ETL_CONSTEXPR14 function_wrapper(const_method_type const_method_)
-      : invocation(const_method_, const_method_stub)
+    ETL_CONSTEXPR14 function_wrapper(function_type method_)
+      : invocation(method_, method_stub)
     {
     }
 
@@ -570,7 +570,7 @@ namespace etl
     ETL_CONSTEXPR14
     bool is_valid() const
     {
-      return (invocation.const_stub != ETL_NULLPTR);
+      return (invocation.stub != ETL_NULLPTR);
     }
 
     //*************************************************************************
@@ -663,12 +663,12 @@ namespace etl
     {
       ETL_ASSERT(is_valid(), ETL_ERROR(etl::function_wrapper_uninitialised));
 
-      return (*invocation.const_stub)(object, invocation.const_method, etl::forward<TParameters>(params)...);
+      return (*invocation.stub)(object, invocation.method, etl::forward<TParameters>(params)...);
     }
 
   private:
 
-    using const_stub_type = TReturn(*)(const TObject&, const_method_type, TParameters...);
+    using stub_type = TReturn(*)(const TObject&, function_type, TParameters...);
 
     //*************************************************************************
     /// The internal invocation object.
@@ -680,16 +680,16 @@ namespace etl
       ETL_CONSTEXPR14 invocation_element& operator =(const invocation_element&) = default;
       
       //*******************************
-      ETL_CONSTEXPR14 invocation_element(const_method_type method_, const_stub_type stub_)
-        : const_method(method_)
-        , const_stub(stub_)
+      ETL_CONSTEXPR14 invocation_element(function_type method_, stub_type stub_)
+        : method(method_)
+        , stub(stub_)
       {
       }
 
       //*********************************
       ETL_CONSTEXPR14 bool operator ==(const invocation_element& rhs) const
       {
-        return (rhs.const_method == const_method) && (rhs.const_stub == const_stub);
+        return (rhs.method == method) && (rhs.stub == stub);
       }
 
       //*********************************
@@ -698,16 +698,16 @@ namespace etl
         return !(*this == rhs);
       }
 
-      const_method_type const_method = ETL_NULLPTR;
-      const_stub_type   const_stub   = ETL_NULLPTR;
+      function_type method = ETL_NULLPTR;
+      stub_type     stub   = ETL_NULLPTR;
     };
 
     //*************************************************************************
     /// Stub call for a const member function.
     //*************************************************************************
-    static ETL_CONSTEXPR14 TReturn const_method_stub(const TObject& object, const_method_type const_method, TParameters... params)
+    static ETL_CONSTEXPR14 TReturn method_stub(const TObject& object, function_type method, TParameters... params)
     {
-      return (object.*const_method)(etl::forward<TParameters>(params)...);
+      return (object.*method)(etl::forward<TParameters>(params)...);
     }
 
     //*************************************************************************
